@@ -1,0 +1,42 @@
+# Default configuration for MATLAB to C++ Conversion Agent
+
+# LLM Configuration
+llm:
+  provider: "vllm"  # or "openai"
+  model: "gpt-3.5-turbo"
+  api_key: null  # Set via environment variable VLLM_API_KEY or OPENAI_API_KEY
+  temperature: 0.1
+  max_tokens: 4000
+  timeout: 60
+  
+  # vLLM specific settings
+  vllm_endpoint: "http://localhost:8000/v1"
+  vllm_model_name: null
+  
+  # OpenAI specific settings
+  openai_base_url: null
+
+# Analysis Configuration
+analysis:
+  max_file_size: 100000  # bytes
+  chunk_size: 8000
+  analysis_passes: 3
+  confidence_threshold: 0.7
+
+# Conversion Configuration
+conversion:
+  cpp_standard: "c++17"
+  include_optimization: true
+  generate_tests: true
+  create_documentation: true
+
+# Paths
+project_root: "."
+templates_dir: "templates"
+output_dir: "output"
+
+# Logging
+logging:
+  level: "INFO"
+  file: "logs/conversion.log"
+  console: true

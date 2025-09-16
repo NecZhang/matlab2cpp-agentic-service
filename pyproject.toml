@@ -1,0 +1,57 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "matlab2cpp-agent"
+version = "0.1.0"
+description = "LangGraph-based agentic system for converting MATLAB projects to C++"
+authors = [
+    {name = "MATLAB2CPP Team", email = "team@matlab2cpp.com"},
+]
+dependencies = [
+    "langgraph>=0.2.0",
+    "langchain>=0.3.0",
+    "langchain-openai>=0.2.0",
+    "langchain-community>=0.3.0",
+    "pydantic>=2.0.0",
+    "pyyaml>=6.0",
+    "jinja2>=3.1.0",
+    "click>=8.0.0",
+    "pytest>=7.0.0",
+    "pytest-asyncio>=0.21.0",
+    "networkx>=3.0",
+    "sympy>=1.12",
+    "rich>=13.0.0",
+    "loguru>=0.7.0",
+    "pathlib>=1.0.0",
+    "typing-extensions>=4.0.0",
+    "python-dotenv>=1.1.1",
+]
+requires-python = ">=3.9"
+
+[project.optional-dependencies]
+dev = [
+    "black>=23.0.0",
+    "isort>=5.12.0",
+    "flake8>=6.0.0",
+    "mypy>=1.0.0",
+    "pre-commit>=3.0.0",
+]
+
+[project.scripts]
+matlab2cpp = "matlab2cpp_agent.main:cli"
+
+[tool.black]
+line-length = 88
+target-version = ['py39']
+
+[tool.isort]
+profile = "black"
+line_length = 88
+
+[tool.mypy]
+python_version = "3.9"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
