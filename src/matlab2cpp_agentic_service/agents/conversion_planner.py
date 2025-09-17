@@ -13,8 +13,8 @@ from typing import Dict, List, Any, Optional
 from dataclasses import dataclass, asdict
 from loguru import logger
 
-from matlab2cpp_agent.tools.llm_client import create_llm_client
-from matlab2cpp_agent.utils.config import LLMConfig
+from matlab2cpp_agentic_service.tools.llm_client import create_llm_client
+from matlab2cpp_agentic_service.utils.config import LLMConfig
 
 @dataclass
 class ConversionPlan:

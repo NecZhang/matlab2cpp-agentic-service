@@ -11,9 +11,9 @@ import re
 from typing import Dict, List, Any, Optional, Tuple
 from loguru import logger
 
-from matlab2cpp_agent.tools.llm_client import create_llm_client
-from matlab2cpp_agent.utils.config import LLMConfig
-from matlab2cpp_agent.agents.conversion_planner import ConversionPlan
+from matlab2cpp_agentic_service.tools.llm_client import create_llm_client
+from matlab2cpp_agentic_service.utils.config import LLMConfig
+from matlab2cpp_agentic_service.agents.conversion_planner import ConversionPlan
 
 class CppGeneratorAgent:
     """Agent responsible for generating C++ code from MATLAB analysis."""

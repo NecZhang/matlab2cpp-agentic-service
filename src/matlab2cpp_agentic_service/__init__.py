@@ -1,7 +1,7 @@
 """
-MATLAB2C++ Agent
+MATLAB2C++ Agentic Service
 
-A comprehensive agentic system for converting MATLAB projects to C++ with
+A comprehensive agentic service for converting MATLAB projects to C++ with
 intelligent analysis, planning, and iterative optimization.
 """
 
@@ -13,7 +13,7 @@ from .services import (
 )
 
 __version__ = "1.0.0"
-__author__ = "MATLAB2C++ Agent Team"
+__author__ = "Nec Z"
 
 __all__ = [
     'MATLAB2CPPOrchestrator',

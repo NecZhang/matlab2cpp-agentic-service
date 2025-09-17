@@ -1082,7 +1082,7 @@ wheels = [
 ]
 
 [[package]]
-name = "matlab2cpp-agent"
+name = "matlab2cpp-agentic-service"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [

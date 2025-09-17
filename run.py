@@ -26,15 +26,15 @@ project_root = Path(__file__).parent
 sys.path.insert(0, str(project_root / "src"))
 
 # Import the main components
-from matlab2cpp_agent import (
+from matlab2cpp_agentic_service import (
     MATLAB2CPPOrchestrator,
     ConversionRequest,
     ConversionResult,
     ConversionStatus
 )
-from matlab2cpp_agent.utils.config import get_config, set_config, load_config
-from matlab2cpp_agent.utils.logger import setup_logger, get_logger
-from matlab2cpp_agent.tools.llm_client import test_llm_connection
+from matlab2cpp_agentic_service.utils.config import get_config, set_config, load_config
+from matlab2cpp_agentic_service.utils.logger import setup_logger, get_logger
+from matlab2cpp_agentic_service.tools.llm_client import test_llm_connection
 
 
 class MATLAB2CPPRunner:
@@ -141,8 +141,8 @@ class MATLAB2CPPRunner:
         self.logger.info(f"🔍 Analyzing MATLAB project: {matlab_path}")
         
         try:
-            from matlab2cpp_agent.agents.matlab_content_analyzer import MATLABContentAnalyzerAgent
-            from matlab2cpp_agent.tools.llm_client import create_llm_client
+            from matlab2cpp_agentic_service.agents.matlab_content_analyzer import MATLABContentAnalyzerAgent
+            from matlab2cpp_agentic_service.tools.llm_client import create_llm_client
             
             # Initialize analyzer
             llm_client = create_llm_client(self.config.llm)
@@ -247,7 +247,7 @@ class MATLAB2CPPRunner:
         self.logger.info(f"✅ Validating C++ project: {cpp_path}")
         
         try:
-            from matlab2cpp_agent.agents.validator import ValidatorAgent
+            from matlab2cpp_agentic_service.agents.validator import ValidatorAgent
             
             # Initialize validator
             validator = ValidatorAgent()

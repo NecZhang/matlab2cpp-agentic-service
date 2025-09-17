@@ -3,11 +3,11 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "matlab2cpp-agent"
+name = "matlab2cpp-agentic-service"
 version = "0.1.0"
-description = "LangGraph-based agentic system for converting MATLAB projects to C++"
+description = "LangGraph-based agentic service for converting MATLAB projects to C++"
 authors = [
-    {name = "MATLAB2CPP Team", email = "team@matlab2cpp.com"},
+    {name = "Nec Z"},
 ]
 dependencies = [
     "langgraph>=0.2.0",
@@ -40,7 +40,7 @@ dev = [
 ]
 
 [project.scripts]
-matlab2cpp = "matlab2cpp_agent.main:cli"
+matlab2cpp = "matlab2cpp_agentic_service.main:cli"
 
 [tool.black]
 line-length = 88

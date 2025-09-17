@@ -14,12 +14,12 @@ from dataclasses import dataclass
 from enum import Enum
 from loguru import logger
 
-from matlab2cpp_agent.agents.matlab_content_analyzer import MATLABContentAnalyzerAgent
-from matlab2cpp_agent.agents.conversion_planner import ConversionPlannerAgent, ConversionPlan
-from matlab2cpp_agent.agents.cpp_generator import CppGeneratorAgent
-from matlab2cpp_agent.agents.quality_assessor import QualityAssessorAgent, AssessmentResult
-from matlab2cpp_agent.tools.llm_client import create_llm_client
-from matlab2cpp_agent.utils.config import get_config
+from matlab2cpp_agentic_service.agents.matlab_content_analyzer import MATLABContentAnalyzerAgent
+from matlab2cpp_agentic_service.agents.conversion_planner import ConversionPlannerAgent, ConversionPlan
+from matlab2cpp_agentic_service.agents.cpp_generator import CppGeneratorAgent
+from matlab2cpp_agentic_service.agents.quality_assessor import QualityAssessorAgent, AssessmentResult
+from matlab2cpp_agentic_service.tools.llm_client import create_llm_client
+from matlab2cpp_agentic_service.utils.config import get_config
 
 class ConversionStatus(Enum):
     """Conversion process status."""

@@ -1,6 +1,6 @@
-# 🚀 MATLAB to C++ Conversion Agent
+# 🚀 MATLAB to C++ Agentic Service
 
-A modern agentic system for converting MATLAB projects to C++ with intelligent analysis, planning, and iterative optimization.
+A modern agentic system for converting MATLAB projects to C++ with intelligent analysis, planning, and iterative optimization using state-of-the-art language models.
 
 ## ✨ Features
 
@@ -9,7 +9,9 @@ A modern agentic system for converting MATLAB projects to C++ with intelligent a
 - 🔄 **Iterative Optimization**: Automatic code improvement with quality assessment and feedback loops
 - 📊 **Comprehensive Quality Assessment**: Multi-dimensional code quality evaluation with detailed reports
 - 🎯 **Flexible Output**: Support for different C++ standards and project structures
-- 💻 **CLI Interface**: Easy-to-use command-line interface for conversion and analysis
+- 💻 **Unified CLI Interface**: Single `run.py` script for all operations with rich configuration support
+- ⚙️ **Environment-Based Configuration**: Easy setup with `.env` files and YAML configuration support
+- 🤖 **Multi-LLM Support**: Works with vLLM, OpenAI, and other LLM providers
 
 ## 📦 Installation
 
@@ -27,7 +29,7 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 ```bash
 # Clone the repository
 git clone <repository-url>
-cd matlab2cpp_agent
+cd matlab2cpp_agentic_service
 
 # Install dependencies using uv
 uv sync
@@ -40,25 +42,42 @@ uv pip install -e .
 
 The project uses `uv` for dependency management. Key dependencies include:
 - 📝 `loguru` - Advanced logging
-- 🔧 `pydantic` - Data validation
-- ⚙️ `pyyaml` - Configuration files
+- 🔧 `pydantic` - Data validation and configuration management
+- ⚙️ `pyyaml` - YAML configuration file support
 - 🖱️ `click` - CLI framework
+- 🌐 `python-dotenv` - Environment variable management
+- 🤖 `langchain` & `langgraph` - LLM integration and agent orchestration
+- 🔗 `langchain-openai` & `langchain-community` - LLM provider support
 
 ## 🚀 Usage
 
+### 🔧 Quick Setup
+
+1. **Configure your environment**:
+   ```bash
+   # Copy the template and customize
+   cp .env.template .env
+   # Edit .env with your LLM provider settings
+   ```
+
+2. **Test your configuration**:
+   ```bash
+   uv run python run.py test-llm
+   ```
+
 ### 💻 Command Line Interface
 
-**Using the general runner script (recommended)**:
+**Using the unified runner script (recommended)**:
 
 ```bash
 # 🔄 Convert a MATLAB project to C++
-uv run python run.py convert /path/to/matlab/project my_project
+uv run python run.py convert examples/matlab_samples/arma_filter.m my_project
 
 # 🔍 Analyze a MATLAB project without conversion
-uv run python run.py analyze /path/to/matlab/project --detailed
+uv run python run.py analyze examples/matlab_samples/arma_filter.m --detailed
 
 # ✅ Validate a converted C++ project
-uv run python run.py validate /path/to/cpp/project
+uv run python run.py validate output/my_project
 
 # 🧪 Test LLM connection
 uv run python run.py test-llm
@@ -67,20 +86,25 @@ uv run python run.py test-llm
 uv run python run.py examples
 ```
 
-**Using custom .env configuration**:
+### ⚙️ Configuration Options
+
+**Using different .env configurations**:
 
 ```bash
 # Use specific .env file
 uv run python run.py --env examples/env_files/env.vllm.remote convert examples/matlab_samples/arma_filter.m my_project
 
 # Use YAML config file
-uv run python run.py --config my_config.yaml convert examples/matlab_samples/arma_filter.m my_project
+uv run python run.py --config config/default_config.yaml convert examples/matlab_samples/arma_filter.m my_project
+
+# Verbose output with custom .env
+uv run python run.py --verbose --env examples/env_files/env.development convert examples/matlab_samples/arma_filter.m my_project
 ```
 
-### ⚙️ Advanced Options
+### 🎯 Advanced Conversion Options
 
 ```bash
-# 🎯 Convert with custom options
+# Convert with custom parameters
 uv run python run.py convert examples/matlab_samples/arma_filter.m my_project \
   --output-dir ./cpp_output \
   --max-turns 3 \
@@ -88,21 +112,21 @@ uv run python run.py convert examples/matlab_samples/arma_filter.m my_project \
   --cpp-standard C++20 \
   --include-tests
 
-# 🔧 Verbose output with custom .env
-uv run python run.py --verbose --env examples/env_files/env.development convert examples/matlab_samples/arma_filter.m my_project
+# JSON output for automation
+uv run python run.py convert examples/matlab_samples/arma_filter.m my_project --json-output
 ```
 
 ### 🐍 Programmatic Usage
 
 ```python
-from matlab2cpp_agent import MATLAB2CPPOrchestrator, ConversionRequest
+from matlab2cpp_agentic_service import MATLAB2CPPOrchestrator, ConversionRequest
 
-# 🏗️ Initialize orchestrator
+# 🏗️ Initialize orchestrator (uses .env configuration automatically)
 orchestrator = MATLAB2CPPOrchestrator()
 
 # 📋 Create conversion request
 request = ConversionRequest(
-    matlab_path="/path/to/matlab/project",
+    matlab_path="examples/matlab_samples/arma_filter.m",
     project_name="my_cpp_project",
     output_dir="./output",
     max_optimization_turns=2,
@@ -117,6 +141,7 @@ result = orchestrator.convert_project(request)
 if result.status == "completed":
     print(f"✅ Conversion successful! Quality score: {result.final_score}/10")
     print(f"📁 Generated files: {result.generated_files}")
+    print(f"📋 Assessment reports: {result.assessment_reports}")
 else:
     print(f"❌ Conversion failed: {result.error_message}")
 ```
@@ -137,8 +162,20 @@ The system uses a modern orchestrator pattern with specialized agents:
 ### 📁 Project Structure
 
 ```
-matlab2cpp_agent/
-├── 📂 src/matlab2cpp_agent/
+matlab2cpp_agentic_service/
+├── 🚀 run.py                   # Unified runner script (main entry point)
+├── 📄 .env.template            # Environment configuration template
+├── 📂 config/                  # YAML configuration files
+│   └── default_config.yaml
+├── 📂 examples/
+│   ├── 📁 env_files/           # Example .env configurations
+│   │   ├── env.vllm.local      # Local vLLM server config
+│   │   ├── env.vllm.remote     # Remote vLLM server config
+│   │   ├── env.openai          # OpenAI API config
+│   │   └── env.development     # Development mode config
+│   └── 📁 matlab_samples/      # Example MATLAB projects
+│       └── arma_filter.m
+├── 📂 src/matlab2cpp_agentic_service/
 │   ├── 🤖 agents/              # Specialized conversion agents
 │   │   ├── matlab_content_analyzer.py
 │   │   ├── conversion_planner.py
@@ -151,12 +188,11 @@ matlab2cpp_agent/
 │   │   ├── matlab_parser.py
 │   │   └── llm_client.py
 │   ├── ⚙️ utils/               # Utilities and configuration
-│   │   ├── config.py
+│   │   ├── config.py           # Enhanced with .env support
 │   │   └── logger.py
 │   ├── 💻 cli/                 # Command-line interfaces
 │   │   └── general_converter.py
-│   └── main.py              # Main CLI entry point
-├── 📚 examples/                # Example MATLAB projects
+│   └── main.py                 # Legacy CLI entry point
 ├── 📁 output/                  # Generated C++ projects
 ├── 📄 pyproject.toml           # uv project configuration
 └── 📖 README.md
@@ -236,21 +272,26 @@ export LLM_MODEL="gpt-4"
 
 ## 🔄 Conversion Process
 
-1. 🔍 **Analysis**: MATLAB content is analyzed to understand structure, functions, and dependencies
-2. 📋 **Planning**: A comprehensive C++ conversion plan is created with architecture and strategy
-3. ⚡ **Generation**: Initial C++ code is generated following the conversion plan
-4. 📊 **Assessment**: Code quality is evaluated across multiple dimensions
-5. 🔄 **Optimization**: Code is iteratively improved based on assessment feedback
+1. 🔍 **Analysis**: MATLAB content is analyzed using LLM-powered agents to understand structure, functions, and dependencies
+2. 📋 **Planning**: A comprehensive C++ conversion plan is created with architecture and strategy recommendations
+3. ⚡ **Generation**: Initial C++ code is generated following the conversion plan with proper headers and implementations
+4. 📊 **Assessment**: Code quality is evaluated across multiple dimensions (algorithmic accuracy, performance, style, maintainability)
+5. 🔄 **Optimization**: Code is iteratively improved based on assessment feedback (if enabled)
 6. ✅ **Validation**: Final code is validated for compilation and functionality
+7. 📋 **Reporting**: Detailed assessment reports and generated files are provided
 
 ## 📊 Quality Assessment
 
 The system provides comprehensive quality assessment including:
-- 🎯 **Code Quality**: Syntax, style, and best practices
-- 🔄 **Functional Equivalence**: Correctness compared to original MATLAB
-- ⚡ **Performance**: Optimization opportunities and efficiency
-- 🛠️ **Maintainability**: Code structure and documentation
-- ✅ **Completeness**: Coverage of all MATLAB functionality
+- 🎯 **Algorithmic Accuracy**: Mathematical correctness and logic validation (10.0/10)
+- ⚡ **Performance**: Optimization opportunities and efficiency analysis (10.0/10)
+- 🛡️ **Error Handling**: Robustness and edge case coverage (10.0/10)
+- 🎨 **Code Style**: Syntax, formatting, and best practices compliance
+- 🛠️ **Maintainability**: Code structure, documentation, and readability
+- ✅ **Functional Equivalence**: Correctness compared to original MATLAB
+- 📋 **Completeness**: Coverage of all MATLAB functionality
+
+**Quality Score**: Overall score from 0-10 with detailed breakdown and improvement recommendations.
 
 ## 🛠️ Development
 
@@ -260,25 +301,28 @@ The system provides comprehensive quality assessment including:
 # 🔧 Install development dependencies
 uv sync --dev
 
-# ✅ Run syntax checks
-uv run python3 -m py_compile src/matlab2cpp_agent/main.py
+# 🚀 Use the unified runner for development
+uv run python run.py --env examples/env_files/env.development test-llm
 
-# 🧪 Test LLM connection
-uv run python3 -m src.matlab2cpp_agent.main test-llm
+# 🧪 Test conversion with development settings
+uv run python run.py --verbose --env examples/env_files/env.development convert examples/matlab_samples/arma_filter.m test_project
+
+# ✅ Run syntax checks
+uv run python3 -m py_compile run.py
 
 # 🎨 Format code (if using black/isort)
-uv run black src/
-uv run isort src/
+uv run black src/ run.py
+uv run isort src/ run.py
 
 # 🔍 Type checking (if using mypy)
-uv run mypy src/
+uv run mypy src/ run.py
 ```
 
 ### Development Workflow
 
 ```bash
-# 🚀 Run the converter with uv
-uv run python -m src.matlab2cpp_agent.main convert examples/matlab_samples/arma_filter.m arma_filter_test
+# 🚀 Run the converter with development configuration
+uv run python run.py --env examples/env_files/env.development convert examples/matlab_samples/arma_filter.m dev_test
 
 # 📦 Add new dependencies
 uv add package-name
@@ -290,6 +334,14 @@ uv sync
 uv sync --reinstall
 ```
 
+### Configuration for Development
+
+Use the development environment configuration:
+```bash
+cp examples/env_files/env.development .env
+# This enables DEBUG logging, profiling, and faster analysis
+```
+
 ## 📚 Examples
 
 See the `examples/` directory for sample MATLAB projects and their C++ conversions in the `output/` directory.
@@ -297,9 +349,78 @@ See the `examples/` directory for sample MATLAB projects and their C++ conversio
 ### 🎯 Quick Example
 
 ```bash
+# Setup configuration
+cp examples/env_files/env.vllm.remote .env
+
 # Convert the ARMA filter example
-uv run python -m src.matlab2cpp_agent.main convert examples/matlab_samples/arma_filter.m arma_filter_cpp --output ./output
+uv run python run.py convert examples/matlab_samples/arma_filter.m arma_filter_cpp
+
+# View results
+ls output/arma_filter_cpp*
 ```
+
+### 📋 Example Output
+
+After conversion, you'll find:
+- **Header file**: `arma_filter_cpp_v1.h` - Class declarations and interfaces
+- **Implementation**: `arma_filter_cpp_v1.cpp` - Complete C++ implementation
+- **Assessment report**: `arma_filter_cpp_v1_assessment_report.md` - Quality analysis and recommendations
+
+### 🔍 Example Quality Assessment
+
+```
+Overall Score: 8.3/10
+
+📈 Detailed Metrics:
+  • Algorithmic Accuracy: 10.0/10
+  • Performance: 10.0/10
+  • Error Handling: 10.0/10
+  • Code Style: 1.5/10
+  • Maintainability: 1.5/10
+
+🎉 Excellent quality! Ready for production use.
+```
+
+## 🔧 Troubleshooting
+
+### Common Issues
+
+**LLM Connection Failed**:
+```bash
+# Test your configuration
+uv run python run.py test-llm
+
+# Check your .env file
+cat .env
+
+# Try different configuration
+cp examples/env_files/env.vllm.local .env
+```
+
+**Conversion Takes Too Long**:
+```bash
+# Use development configuration for faster processing
+cp examples/env_files/env.development .env
+
+# Reduce optimization turns
+uv run python run.py convert examples/matlab_samples/arma_filter.m my_project --max-turns 1
+```
+
+**Low Quality Scores**:
+```bash
+# Increase optimization turns
+uv run python run.py convert examples/matlab_samples/arma_filter.m my_project --max-turns 3 --target-quality 8.5
+
+# Enable verbose output for debugging
+uv run python run.py --verbose convert examples/matlab_samples/arma_filter.m my_project
+```
+
+### Getting Help
+
+1. **Check the logs**: Enable verbose mode with `--verbose` flag
+2. **Test LLM connection**: Run `uv run python run.py test-llm`
+3. **Try example configurations**: Use pre-configured .env files in `examples/env_files/`
+4. **Review assessment reports**: Check generated `.md` files in `output/` directory
 
 ## 📄 License
 
@@ -309,10 +430,13 @@ MIT License - see LICENSE file for details.
 
 <div align="center">
 
-**🚀 Built with ❤️ using modern Python tooling**
+**🚀 Built with ❤️ using modern Python tooling and AI agents**
 
 [![uv](https://img.shields.io/badge/uv-0.1.0-blue.svg)](https://docs.astral.sh/uv/)
-[![Python](https://img.shields.io/badge/Python-3.8+-green.svg)](https://python.org)
+[![Python](https://img.shields.io/badge/Python-3.9+-green.svg)](https://python.org)
+[![LangChain](https://img.shields.io/badge/LangChain-0.3+-orange.svg)](https://langchain.com)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
+**Transform MATLAB code into production-ready C++ with AI-powered analysis and optimization**
 
 </div>

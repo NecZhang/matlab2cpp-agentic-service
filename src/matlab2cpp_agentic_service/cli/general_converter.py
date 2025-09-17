@@ -15,7 +15,7 @@ from typing import Optional
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))
 
-from matlab2cpp_agent.services.matlab2cpp_orchestrator import (
+from matlab2cpp_agentic_service.services.matlab2cpp_orchestrator import (
     MATLAB2CPPOrchestrator,
     ConversionRequest,
     ConversionStatus
