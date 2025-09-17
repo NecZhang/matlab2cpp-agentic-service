@@ -15,9 +15,8 @@ from typing import Optional
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))
 
-from matlab2cpp_agent.services.matlab2cpp_service import (
-    convert_matlab_project, 
-    convert_matlab_script,
+from matlab2cpp_agent.services.matlab2cpp_orchestrator import (
+    MATLAB2CPPOrchestrator,
     ConversionRequest,
     ConversionStatus
 )
@@ -141,16 +140,9 @@ Examples:
     print("=" * 50)
     
     try:
-        # Perform conversion
-        result = convert_matlab_project(
-            matlab_path, 
-            args.project_name,
-            output_dir=args.output_dir,
-            max_optimization_turns=args.max_turns,
-            target_quality_score=args.target_quality,
-            include_tests=args.include_tests,
-            cpp_standard=args.cpp_standard
-        )
+        # Initialize orchestrator and perform conversion
+        orchestrator = MATLAB2CPPOrchestrator()
+        result = orchestrator.convert_project(request)
         
         # Display results
         if args.json_output:
