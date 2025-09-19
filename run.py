@@ -145,8 +145,7 @@ class MATLAB2CPPRunner:
             from matlab2cpp_agentic_service.tools.llm_client import create_llm_client
             
             # Initialize analyzer
-            llm_client = create_llm_client(self.config.llm)
-            analyzer = MATLABContentAnalyzerAgent(llm_client)
+            analyzer = MATLABContentAnalyzerAgent(self.config.llm)
             
             # Analyze project
             result = analyzer.analyze_matlab_content(matlab_path)
@@ -175,7 +174,8 @@ class MATLAB2CPPRunner:
         max_turns: Optional[int] = None,
         target_quality: Optional[float] = None,
         cpp_standard: Optional[str] = None,
-        include_tests: Optional[bool] = None
+        include_tests: Optional[bool] = None,
+        conversion_mode: str = 'result-focused'
     ) -> ConversionResult:
         """
         Convert MATLAB project to C++.
@@ -188,6 +188,7 @@ class MATLAB2CPPRunner:
             target_quality: Target quality score (0-10, uses config default if None)
             cpp_standard: C++ standard to use (uses config default if None)
             include_tests: Whether to include unit tests (uses config default if None)
+            conversion_mode: 'faithful' for bit-level equivalence or 'result-focused' for working C++ code
             
         Returns:
             ConversionResult with conversion status and details
@@ -219,7 +220,8 @@ class MATLAB2CPPRunner:
                 max_optimization_turns=max_turns,
                 target_quality_score=target_quality,
                 include_tests=include_tests,
-                cpp_standard=cpp_standard
+                cpp_standard=cpp_standard,
+                conversion_mode=conversion_mode
             )
             
             # Perform conversion
@@ -386,7 +388,12 @@ Examples:
     --output-dir ./output \\
     --max-turns 3 \\
     --target-quality 8.0 \\
-    --cpp-standard C++20
+    --cpp-standard C++20 \\
+    --conversion-mode result-focused
+  
+  # Convert with faithful mode (bit-level equivalence)
+  python run.py convert examples/matlab_samples/arma_filter.m my_project \\
+    --conversion-mode faithful
   
   # Analyze MATLAB project
   python run.py analyze examples/matlab_samples/arma_filter.m --detailed
@@ -421,11 +428,14 @@ Examples:
     convert_parser.add_argument('matlab_path', type=Path, help='Path to MATLAB file or project')
     convert_parser.add_argument('project_name', help='Name for the generated C++ project')
     convert_parser.add_argument('--output-dir', '-o', type=Path, help='Output directory')
-    convert_parser.add_argument('--max-turns', type=int, default=2, help='Max optimization turns')
+    convert_parser.add_argument('--max-turns', type=int, default=2, help='Maximum number of optimization turns (additional generations beyond initial)')
     convert_parser.add_argument('--target-quality', type=float, default=7.0, help='Target quality score')
     convert_parser.add_argument('--cpp-standard', default='C++17', help='C++ standard')
     convert_parser.add_argument('--include-tests', action='store_true', default=True, help='Include tests')
     convert_parser.add_argument('--no-tests', dest='include_tests', action='store_false', help='Skip tests')
+    convert_parser.add_argument('--conversion-mode', choices=['faithful', 'result-focused'], 
+                               default='result-focused', 
+                               help='Conversion mode: faithful (bit-level equivalence) or result-focused (working C++ code)')
     
     # Analyze command
     analyze_parser = subparsers.add_parser('analyze', help='Analyze MATLAB project')
@@ -487,7 +497,8 @@ Examples:
                 max_turns=args.max_turns,
                 target_quality=args.target_quality,
                 cpp_standard=args.cpp_standard,
-                include_tests=args.include_tests
+                include_tests=args.include_tests,
+                conversion_mode=args.conversion_mode
             )
             
             if args.json_output:

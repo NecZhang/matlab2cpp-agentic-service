@@ -92,8 +92,7 @@ def analyze(matlab_path: Path, detailed: bool):
         
         # Initialize analyzer
         config = get_config()
-        llm_client = create_llm_client(config.llm)
-        analyzer = MATLABContentAnalyzerAgent(llm_client)
+        analyzer = MATLABContentAnalyzerAgent(config.llm)
         
         # Analyze project
         analysis_result = analyzer.analyze_matlab_content(matlab_path)

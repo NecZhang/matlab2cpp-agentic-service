@@ -15,6 +15,11 @@ class LLMClient(ABC):
     def invoke(self, messages: List[Dict[str, str]]) -> str:
         """Invoke the LLM with a list of messages."""
         pass
+    
+    def get_completion(self, prompt: str) -> str:
+        """Get completion for a single prompt string."""
+        messages = [{"role": "user", "content": prompt}]
+        return self.invoke(messages)
 
 
 class VLLMClient(LLMClient):
