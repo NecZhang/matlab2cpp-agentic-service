@@ -1,0 +1,9 @@
+# This file ensures the matlab_samples directory is tracked by git
+# even when all MATLAB files are ignored.
+
+# Place your MATLAB sample files here for testing the conversion service.
+# Examples:
+# - Single file projects: *.m files
+# - Multi-file projects: subdirectories with multiple *.m files
+
+

@@ -1,13 +1,7 @@
-"""Utility modules for configuration, logging, and common functions."""
+"""
+Utilities
 
-from .config import Config, get_config
-from .logger import setup_logger, get_logger
+This module provides utility functions for the MATLAB2C++ conversion service.
+"""
 
-__all__ = [
-    "Config",
-    "get_config",
-    "setup_logger", 
-    "get_logger",
-]
-
-
+__all__ = []

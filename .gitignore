@@ -126,7 +126,42 @@ Thumbs.db
 # Project specific
 output/
 *.tmp
+test_files/
+*.md.backup
 
-# Project specific directories
-examples/
-output/
+# Avoid duplicate directories in src/
+src/output/
+src/test_files/
+
+# Example MATLAB samples (ignore contents, keep structure)
+examples/matlab_samples/*
+!examples/matlab_samples/.gitkeep
+!examples/matlab_samples/README.md
+
+# Temporary documentation files
+CLI_DEVELOPMENT_GUIDE.md
+CLI_MONITORING_ARCHITECTURE.md
+MONITORING_INTEGRATION_PLAN.md
+PROMPTS_UPDATING_GUIDE.md
+workflow_diagram.md
+
+# Shell scripts and wrappers
+matlab2cpp
+setup_cli_alias.sh
+
+# Log files
+*.log
+logs/
+
+# Temporary files
+*.swp
+*.swo
+*~
+.tmp/
+temp/
+
+# Outdated test files (development phases)
+tests/integration/test_langgraph_*.py
+tests/integration/test_phase1_*.py
+tests/integration/test_refactored_*.py
+tests/integration/test_single_file_conversion.py

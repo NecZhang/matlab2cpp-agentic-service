@@ -4,10 +4,10 @@ build-backend = "hatchling.build"
 
 [project]
 name = "matlab2cpp-agentic-service"
-version = "0.1.0"
+version = "0.2.0"
 description = "LangGraph-based agentic service for converting MATLAB projects to C++"
 authors = [
-    {name = "Nec Z"},
+    {name = "Nec Zhang"},
 ]
 dependencies = [
     "langgraph>=0.2.0",
@@ -27,8 +27,9 @@ dependencies = [
     "pathlib>=1.0.0",
     "typing-extensions>=4.0.0",
     "python-dotenv>=1.1.1",
+    "psutil",
 ]
-requires-python = ">=3.9"
+requires-python = ">=3.12"
 
 [project.optional-dependencies]
 dev = [
@@ -40,18 +41,18 @@ dev = [
 ]
 
 [project.scripts]
-matlab2cpp = "matlab2cpp_agentic_service.main:cli"
+matlab2cpp-cli = "matlab2cpp_agentic_service.cli.commands:cli"
 
 [tool.black]
 line-length = 88
-target-version = ['py39']
+target-version = ['py312']
 
 [tool.isort]
 profile = "black"
 line_length = 88
 
 [tool.mypy]
-python_version = "3.9"
+python_version = "3.12"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true

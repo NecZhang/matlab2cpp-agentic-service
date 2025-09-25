@@ -3,7 +3,7 @@
 import os
 from pathlib import Path
 from typing import Dict, Any, Optional
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 import yaml
 from dotenv import load_dotenv
 
@@ -87,8 +87,7 @@ class Config(BaseModel):
     project_root: Path = Field(default=Path.cwd())
     templates_dir: Path = Field(default=Path("templates"))
     
-    class Config:
-        arbitrary_types_allowed = True
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
 def load_config(config_path: Optional[Path] = None, env_path: Optional[Path] = None) -> Config:

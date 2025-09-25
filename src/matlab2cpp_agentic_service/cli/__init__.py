@@ -1,11 +1,13 @@
 """
-MATLAB2C++ CLI Tools
+CLI Interface
 
-This module provides command-line interfaces for MATLAB to C++ conversion.
+This module provides command-line interface for the MATLAB2C++ conversion service.
 """
 
-from .general_converter import main as general_converter_main
+# CLI is now unified in commands.py
+from .commands import cli
 
 __all__ = [
-    'general_converter_main'
+    "cli"
 ]
+
