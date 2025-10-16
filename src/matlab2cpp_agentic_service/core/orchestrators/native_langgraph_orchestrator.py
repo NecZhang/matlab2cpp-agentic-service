@@ -17,7 +17,7 @@ from matlab2cpp_agentic_service.infrastructure.state.conversion_state import (
     create_initial_state,
     create_final_result
 )
-from ..workflows.native_langgraph_workflow import NativeLangGraphMATLAB2CPPWorkflow
+from ..workflows.enhanced_langgraph_workflow import EnhancedLangGraphMATLAB2CPPWorkflow
 
 
 class NativeLangGraphMATLAB2CPPOrchestrator:
@@ -37,11 +37,65 @@ class NativeLangGraphMATLAB2CPPOrchestrator:
         """Initialize the native LangGraph orchestrator."""
         self.logger = logger.bind(name="native_langgraph_orchestrator")
         self.logger.info("Native LangGraph MATLAB2C++ Orchestrator initialized")
+        
+        # Initialize workflow
+        self._initialize_workflow()
+    
+    def _extract_generated_files(self, final_state: Dict[str, Any]) -> List[str]:
+        """Extract generated files from workflow response."""
+        # Try to get from generated_files first
+        generated_files = final_state.get('generated_files', [])
+        
+        # If no files in generated_files, try to extract from generated_code in state
+        if not generated_files:
+            state_data = final_state.get('state', {})
+            if 'generated_code' in state_data:
+                generated_code = state_data['generated_code']
+                if isinstance(generated_code, dict) and 'files' in generated_code:
+                    generated_files = list(generated_code['files'].keys())
+        
+        return generated_files
+    
+    def _extract_quality_score(self, final_state: Dict[str, Any]) -> float:
+        """Extract quality score from workflow response."""
+        # Try to get from performance_metrics first
+        quality_score = final_state.get('performance_metrics', {}).get('quality_score', 0.0)
+        
+        # If no score in performance_metrics, try to get from state
+        if quality_score == 0.0:
+            state_data = final_state.get('state', {})
+            if 'quality_scores' in state_data:
+                quality_scores = state_data['quality_scores']
+                if isinstance(quality_scores, dict):
+                    quality_score = quality_scores.get('overall_score', 0.0)
+        
+        return quality_score
 
-        # Initialize the native workflow
-        self.workflow = NativeLangGraphMATLAB2CPPWorkflow()
+    def _initialize_workflow(self):
+        """Initialize the workflow and related components."""
+        # Get configuration and LLM clients
+        from ...utils.config import get_config
+        from ...infrastructure.tools.llm_client import create_selective_llm_clients
+        from ..agents.base.langgraph_agent import AgentConfig
+        from ..workflows.enhanced_langgraph_workflow import EnhancedLangGraphMATLAB2CPPWorkflow
+        
+        self.app_config = get_config()
+        self.llm_clients = create_selective_llm_clients(self.app_config.llm, self.app_config.selective_llm)
+        
+        # Create agent configuration
+        self.agent_config = AgentConfig(
+            name="enhanced_workflow",
+            description="Enhanced MATLAB2C++ conversion workflow",
+            max_retries=3,
+            timeout_seconds=300.0,
+            enable_memory=True,
+            enable_performance_tracking=True
+        )
+        
+        # Initialize the native workflow with selective LLM clients
+        self.workflow = EnhancedLangGraphMATLAB2CPPWorkflow(self.agent_config, self.llm_clients)
 
-    def convert_project(self, request: ConversionRequest) -> ConversionResult:
+    async def convert_project(self, request: ConversionRequest) -> ConversionResult:
         """
         Convert MATLAB project to C++ using native LangGraph workflow.
 
@@ -77,14 +131,35 @@ class NativeLangGraphMATLAB2CPPOrchestrator:
                     error_message="Request validation failed"
                 )
 
-            # Create initial state
-            initial_state = create_initial_state(request)
-
             # Run the native LangGraph workflow
-            final_state = self.workflow.run_conversion_sync(initial_state)
+            final_state = await self.workflow.run_conversion(
+                request.matlab_path,
+                project_name=request.project_name,
+                output_dir=request.output_dir,
+                conversion_mode=request.conversion_mode,
+                max_optimization_turns=request.max_optimization_turns,
+                target_quality_score=request.target_quality_score
+            )
 
-            # Create final result
-            result = create_final_result(final_state)
+            # Create final result from workflow response
+            if isinstance(final_state, dict):
+                # Workflow returned a dictionary, create result directly
+                result = ConversionResult(
+                    status=ConversionStatus.COMPLETED if final_state.get('success', False) else ConversionStatus.FAILED,
+                    project_name=request.project_name,
+                    output_dir=request.output_dir,
+                    generated_files=self._extract_generated_files(final_state),
+                    original_score=0.0,
+                    final_score=self._extract_quality_score(final_state),
+                    improvement_turns=0,
+                    assessment_reports=[],
+                    conversion_plan=None,
+                    total_processing_time=final_state.get('performance_metrics', {}).get('execution_time', 0.0),
+                    error_message=final_state.get('error')
+                )
+            else:
+                # Workflow returned a ConversionState, use create_final_result
+                result = create_final_result(final_state)
 
             # Log completion
             total_time = time.time() - start_time
@@ -167,14 +242,35 @@ class NativeLangGraphMATLAB2CPPOrchestrator:
                     error_message="Request validation failed"
                 )
 
-            # Create initial state
-            initial_state = create_initial_state(request)
-
             # Run the native LangGraph workflow asynchronously
-            final_state = await self.workflow.run_conversion(initial_state)
+            final_state = await self.workflow.run_conversion(
+                request.matlab_path,
+                project_name=request.project_name,
+                output_dir=request.output_dir,
+                conversion_mode=request.conversion_mode,
+                max_optimization_turns=request.max_optimization_turns,
+                target_quality_score=request.target_quality_score
+            )
 
-            # Create final result
-            result = create_final_result(final_state)
+            # Create final result from workflow response
+            if isinstance(final_state, dict):
+                # Workflow returned a dictionary, create result directly
+                result = ConversionResult(
+                    status=ConversionStatus.COMPLETED if final_state.get('success', False) else ConversionStatus.FAILED,
+                    project_name=request.project_name,
+                    output_dir=request.output_dir,
+                    generated_files=self._extract_generated_files(final_state),
+                    original_score=0.0,
+                    final_score=self._extract_quality_score(final_state),
+                    improvement_turns=0,
+                    assessment_reports=[],
+                    conversion_plan=None,
+                    total_processing_time=final_state.get('performance_metrics', {}).get('execution_time', 0.0),
+                    error_message=final_state.get('error')
+                )
+            else:
+                # Workflow returned a ConversionState, use create_final_result
+                result = create_final_result(final_state)
 
             # Log completion
             total_time = time.time() - start_time

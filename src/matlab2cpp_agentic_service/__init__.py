@@ -14,8 +14,8 @@ from .core import *
 # Infrastructure components
 from .infrastructure import *
 
-# Data models
-from .models import *
+# Data models (commented out - models directory archived)
+# from .models import *
 
 # CLI interface
 from .cli import cli
@@ -24,34 +24,12 @@ __version__ = "0.2.0"
 __author__ = "Nec Zhang"
 
 __all__ = [
-    # Core components
-    "LegacyAgent",
-    "BaseLangGraphAgent", 
-    "AgentRegistry",
-    "MATLABContentAnalyzerAgent",
-    "ConversionPlannerAgent",
-    "CppGeneratorAgent",
-    "QualityAssessorAgent",
-    "ValidatorAgent",
-    "LegacyWorkflow",
-    "MATLAB2CPPLangGraphWorkflow",
-    "MATLAB2CPPOrchestrator",
-    "MATLAB2CPPLangGraphOrchestrator",
+    # Core components  
+    "BaseLangGraphAgent",
+    "NativeLangGraphMATLAB2CPPOrchestrator",
     
-    # Infrastructure components
-    "ConversionState",
-    "AgentMemory",
-    "SharedMemory",
-    "StateValidator",
-    "MATLABParser",
-    "LLMClient",
-    "AgentPerformanceMonitor",
-    "MetricsCollector",
-    "HealthChecker",
-    
-    # Models
+    # State
     "ConversionRequest",
-    "ConversionResult",
     "ConversionStatus",
     
     # CLI

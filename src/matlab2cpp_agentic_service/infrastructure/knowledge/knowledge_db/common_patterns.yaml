@@ -1,0 +1,424 @@
+# Common Patterns - Variable declarations, includes, and C++ idioms
+# This helps fix "was not declared in this scope" and similar errors
+
+# ============================================================================
+# COMMON VARIABLE DECLARATIONS
+# ============================================================================
+
+variables:
+  # Loop counters
+  i:
+    type: "int"
+    default_value: "0"
+    typical_usage: "Loop counter"
+    declaration: "int i = 0;"
+    context: "for (int i = 0; i < n; i++)"
+  
+  j:
+    type: "int"
+    default_value: "0"
+    typical_usage: "Nested loop counter"
+    declaration: "int j = 0;"
+    context: "for (int j = 0; j < m; j++)"
+  
+  k:
+    type: "int"
+    default_value: "0"
+    typical_usage: "Third-level loop counter or index"
+    declaration: "int k = 0;"
+    context: "for (int k = 0; k < p; k++)"
+  
+  # Algorithm parameters
+  check:
+    type: "bool"
+    default_value: "true"
+    typical_usage: "Boundary checking flag"
+    declaration: "bool check = true;"
+    context: "if (check && i < rows && j < cols)"
+  
+  stepsize:
+    type: "double"
+    default_value: "0.5"
+    typical_usage: "Step size for iterative algorithms"
+    declaration: "double stepsize = 0.5;"
+    context: "nextPoint = currentPoint + stepsize * gradient;"
+  
+  tolerance:
+    type: "double"
+    default_value: "1e-6"
+    typical_usage: "Convergence tolerance"
+    declaration: "double tolerance = 1e-6;"
+    context: "while (error > tolerance)"
+  
+  tol:
+    type: "double"
+    default_value: "1e-6"
+    typical_usage: "Short form of tolerance"
+    declaration: "double tol = 1e-6;"
+  
+  maxiter:
+    type: "int"
+    default_value: "1000"
+    typical_usage: "Maximum number of iterations"
+    declaration: "int maxiter = 1000;"
+    context: "for (int iter = 0; iter < maxiter; iter++)"
+  
+  max_iterations:
+    type: "int"
+    default_value: "1000"
+    typical_usage: "Maximum number of iterations (verbose)"
+    declaration: "int max_iterations = 1000;"
+  
+  iter:
+    type: "int"
+    default_value: "0"
+    typical_usage: "Iteration counter"
+    declaration: "int iter = 0;"
+  
+  iteration:
+    type: "int"
+    default_value: "0"
+    typical_usage: "Iteration counter (verbose)"
+    declaration: "int iteration = 0;"
+  
+  # Size variables
+  rows:
+    type: "int"
+    typical_usage: "Matrix row count"
+    declaration: "int rows = matrix.rows();"
+    context: "Derived from matrix dimensions"
+  
+  cols:
+    type: "int"
+    typical_usage: "Matrix column count"
+    declaration: "int cols = matrix.cols();"
+    context: "Derived from matrix dimensions"
+  
+  size:
+    type: "int"
+    typical_usage: "Vector or array size"
+    declaration: "int size = vec.size();"
+  
+  n:
+    type: "int"
+    typical_usage: "General size variable"
+    declaration: "int n = vector.size();"
+  
+  m:
+    type: "int"
+    typical_usage: "Secondary size variable"
+    declaration: "int m = matrix.cols();"
+  
+  # Common indices
+  idx:
+    type: "int"
+    typical_usage: "Index variable"
+    declaration: "int idx = 0;"
+  
+  index:
+    type: "int"
+    typical_usage: "Index variable (verbose)"
+    declaration: "int index = 0;"
+  
+  row:
+    type: "int"
+    typical_usage: "Row index"
+    declaration: "int row = 0;"
+  
+  col:
+    type: "int"
+    typical_usage: "Column index"
+    declaration: "int col = 0;"
+  
+  # Temporary variables
+  temp:
+    type: "double"
+    typical_usage: "Temporary storage"
+    declaration: "double temp = 0.0;"
+  
+  tmp:
+    type: "double"
+    typical_usage: "Temporary storage (short)"
+    declaration: "double tmp = 0.0;"
+  
+  value:
+    type: "double"
+    typical_usage: "Temporary value"
+    declaration: "double value = 0.0;"
+  
+  result:
+    type: "double"
+    typical_usage: "Result value"
+    declaration: "double result = 0.0;"
+  
+  # Error/residual variables
+  error:
+    type: "double"
+    typical_usage: "Error or residual"
+    declaration: "double error = 0.0;"
+  
+  residual:
+    type: "double"
+    typical_usage: "Residual value"
+    declaration: "double residual = 0.0;"
+  
+  eps:
+    type: "double"
+    default_value: "1e-10"
+    typical_usage: "Small epsilon value"
+    declaration: "double eps = 1e-10;"
+
+# ============================================================================
+# COMMON INCLUDES
+# ============================================================================
+
+includes:
+  algorithm:
+    header: "#include <algorithm>"
+    provides: ["std::min", "std::max", "std::sort", "std::find"]
+    usage: "Required for std::min, std::max, and other algorithms"
+    example: |
+      #include <algorithm>
+      double result = std::min(a, b);
+      double max_val = std::max(x, y);
+  
+  cmath:
+    header: "#include <cmath>"
+    provides: ["std::abs", "std::sqrt", "std::sin", "std::cos", "std::exp", "std::log", "std::pow"]
+    usage: "Mathematical functions"
+    example: |
+      #include <cmath>
+      double result = std::sqrt(value);
+      double angle = std::sin(theta);
+  
+  limits:
+    header: "#include <limits>"
+    provides: ["std::numeric_limits"]
+    usage: "Numeric limits (infinity, NaN, etc.)"
+    example: |
+      #include <limits>
+      double inf = std::numeric_limits<double>::infinity();
+      double max_val = std::numeric_limits<double>::max();
+  
+  vector:
+    header: "#include <vector>"
+    provides: ["std::vector"]
+    usage: "Dynamic arrays"
+    example: |
+      #include <vector>
+      std::vector<double> vec;
+      vec.push_back(value);
+  
+  utility:
+    header: "#include <utility>"
+    provides: ["std::pair", "std::tuple", "std::tie"]
+    usage: "Pairs and tuples"
+    example: |
+      #include <utility>
+      std::pair<double, int> result;
+      auto [x, y] = some_function();
+  
+  iostream:
+    header: "#include <iostream>"
+    provides: ["std::cout", "std::cerr", "std::endl"]
+    usage: "Input/output streams"
+    example: |
+      #include <iostream>
+      std::cout << "Result: " << value << std::endl;
+
+# ============================================================================
+# TYPE PATTERNS
+# ============================================================================
+
+type_patterns:
+  eigen_matrix:
+    declaration: "Eigen::MatrixXd matrix;"
+    initialization: "Eigen::MatrixXd matrix(rows, cols);"
+    zero_init: "Eigen::MatrixXd matrix = Eigen::MatrixXd::Zero(rows, cols);"
+  
+  eigen_vector:
+    declaration: "Eigen::VectorXd vector;"
+    initialization: "Eigen::VectorXd vector(size);"
+    zero_init: "Eigen::VectorXd vector = Eigen::VectorXd::Zero(size);"
+  
+  eigen_array:
+    declaration: "Eigen::ArrayXXd array;"
+    initialization: "Eigen::ArrayXXd array(rows, cols);"
+    from_matrix: "Eigen::ArrayXXd array = matrix.array();"
+  
+  std_vector:
+    declaration: "std::vector<double> vec;"
+    initialization: "std::vector<double> vec(size);"
+    with_value: "std::vector<double> vec(size, initial_value);"
+  
+  pair:
+    declaration: "std::pair<double, int> result;"
+    initialization: "std::pair<double, int> result(value, index);"
+    auto: "auto result = std::make_pair(value, index);"
+
+# ============================================================================
+# CONST CORRECTNESS PATTERNS
+# ============================================================================
+
+const_patterns:
+  const_reference_parameter:
+    pattern: "const Eigen::MatrixXd& matrix"
+    usage: "Function parameters that won't be modified"
+    example: |
+      // Function signature
+      double compute(const Eigen::MatrixXd& input) {
+          // input is read-only
+          return input.sum();
+      }
+  
+  non_const_local:
+    pattern: "Eigen::MatrixXd result;"
+    usage: "Local variables that will be modified"
+    example: |
+      // ❌ WRONG - Can't assign to const
+      const Eigen::MatrixXd result;
+      result = computation();  // ERROR!
+      
+      // ✅ CORRECT
+      Eigen::MatrixXd result;
+      result = computation();  // OK
+  
+  const_return:
+    usage: "DON'T use const for return values (prevents move semantics)"
+    wrong: "const Eigen::MatrixXd compute() { ... }"
+    correct: "Eigen::MatrixXd compute() { ... }"
+
+# ============================================================================
+# NAMESPACE PATTERNS
+# ============================================================================
+
+namespace_patterns:
+  std_functions:
+    pattern: "std::function_name"
+    common_functions:
+      - "std::min"
+      - "std::max"
+      - "std::abs"
+      - "std::sqrt"
+      - "std::sin"
+      - "std::cos"
+      - "std::exp"
+      - "std::log"
+    note: "Always use std:: prefix for standard library functions"
+  
+  eigen_types:
+    pattern: "Eigen::TypeName"
+    common_types:
+      - "Eigen::MatrixXd"
+      - "Eigen::VectorXd"
+      - "Eigen::ArrayXXd"
+      - "Eigen::Tensor"
+    note: "Always use Eigen:: prefix for Eigen types"
+  
+  avoid_using_namespace:
+    rule: "Don't use 'using namespace std;' or 'using namespace Eigen;' in headers"
+    reason: "Pollutes global namespace and can cause conflicts"
+    acceptable: "OK to use in .cpp files for convenience"
+
+# ============================================================================
+# INITIALIZATION PATTERNS
+# ============================================================================
+
+initialization:
+  matrix_zeros:
+    pattern: "Eigen::MatrixXd mat = Eigen::MatrixXd::Zero(rows, cols);"
+    alternatives:
+      - "Eigen::MatrixXd mat(rows, cols); mat.setZero();"
+  
+  matrix_ones:
+    pattern: "Eigen::MatrixXd mat = Eigen::MatrixXd::Ones(rows, cols);"
+  
+  matrix_constant:
+    pattern: "Eigen::MatrixXd mat = Eigen::MatrixXd::Constant(rows, cols, value);"
+  
+  matrix_identity:
+    pattern: "Eigen::MatrixXd mat = Eigen::MatrixXd::Identity(size, size);"
+  
+  vector_zeros:
+    pattern: "Eigen::VectorXd vec = Eigen::VectorXd::Zero(size);"
+  
+  vector_constant:
+    pattern: "Eigen::VectorXd vec = Eigen::VectorXd::Constant(size, value);"
+
+# ============================================================================
+# ERROR PREVENTION RULES
+# ============================================================================
+
+error_prevention:
+  declare_before_use:
+    rule: "All variables must be declared before first use"
+    example: |
+      // ❌ WRONG
+      result = value * 2;  // result not declared!
+      
+      // ✅ CORRECT
+      double result;
+      result = value * 2;
+  
+  initialize_on_declaration:
+    rule: "Prefer initialization at declaration"
+    example: |
+      // ❌ OK but not ideal
+      double result;
+      result = compute();
+      
+      // ✅ BETTER
+      double result = compute();
+  
+  use_auto_for_complex_types:
+    rule: "Use auto for complex or obvious types"
+    example: |
+      // ❌ Verbose
+      Eigen::MatrixXd::RowXpr row = matrix.row(i);
+      
+      // ✅ BETTER
+      auto row = matrix.row(i);
+  
+  type_consistency:
+    rule: "Use consistent types in operations"
+    example: |
+      // ❌ WRONG - Mixing int and double
+      double result = std::min(value, 100);
+      
+      // ✅ CORRECT
+      double result = std::min(value, 100.0);
+      // OR
+      double result = std::min<double>(value, 100);
+
+# ============================================================================
+# QUICK REFERENCE: MOST COMMON FIXES
+# ============================================================================
+
+quick_fixes:
+  undeclared_variable:
+    error: "'X' was not declared in this scope"
+    fix: "Add declaration: type X = value;"
+    example: "double stepsize = 0.5;"
+  
+  missing_std:
+    error: "'min' was not declared"
+    fix: "Use std::min and #include <algorithm>"
+    example: |
+      #include <algorithm>
+      result = std::min(a, b);
+  
+  const_assignment:
+    error: "no match for 'operator=' (const variable)"
+    fix: "Remove const from variable declaration"
+    example: "Eigen::MatrixXd result;  // Not const!"
+  
+  namespace_duplicate:
+    error: "'X' is not a member of 'X'"
+    fix: "Don't repeat namespace::namespace, use unique function names"
+    example: "namespace msfm { MatrixXd compute(...); }"
+
+
+
+
+
+

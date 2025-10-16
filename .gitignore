@@ -8,7 +8,7 @@ __pycache__/
 
 # Distribution / packaging
 .Python
-build/
+/build/
 develop-eggs/
 dist/
 downloads/
@@ -85,6 +85,10 @@ celerybeat-schedule
 
 # Environments
 .env
+.env.local
+.env.*.local
+.env.backup
+*.env.backup
 .venv
 env/
 venv/
@@ -128,6 +132,7 @@ output/
 *.tmp
 test_files/
 *.md.backup
+archive/
 
 # Avoid duplicate directories in src/
 src/output/
@@ -165,3 +170,6 @@ tests/integration/test_langgraph_*.py
 tests/integration/test_phase1_*.py
 tests/integration/test_refactored_*.py
 tests/integration/test_single_file_conversion.py
+
+# Archive directory (analysis reports and development documentation)
+archive/

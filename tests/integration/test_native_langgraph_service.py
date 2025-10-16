@@ -11,8 +11,9 @@ import sys
 import time
 from pathlib import Path
 
-# Add the src directory to the Python path
-sys.path.insert(0, str(Path(__file__).parent / "src"))
+# Ensure proper module imports (use PYTHONPATH instead of sys.path manipulation)
+# If running directly, the parent directory should be in PYTHONPATH
+# Example: PYTHONPATH=/path/to/matlab2cpp_agentic_service/src pytest
 
 from matlab2cpp_agentic_service.infrastructure.state.conversion_state import ConversionRequest
 from matlab2cpp_agentic_service.core.orchestrators.native_langgraph_orchestrator import NativeLangGraphMATLAB2CPPOrchestrator

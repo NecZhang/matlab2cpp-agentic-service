@@ -38,6 +38,7 @@ class ConversionRequest:
     max_optimization_turns: int = 2
     target_quality_score: float = 7.0
     conversion_mode: str = "result-focused"  # "faithful" or "result-focused"
+    build_system: str = "gcc"  # "gcc" or "cmake"
     llm_config: Optional[Dict[str, Any]] = None
     custom_instructions: Optional[str] = None
 
@@ -122,6 +123,7 @@ class ConversionState(TypedDict):
     # Core conversion data
     request: ConversionRequest
     result: ConversionResult
+    matlab_path: str
     
     # Enhanced state management
     agent_memory: Dict[str, AgentMemory]
@@ -161,6 +163,7 @@ class ConversionState(TypedDict):
     conversion_plan: Optional[Dict[str, Any]]
     project_structure_plan: Optional[Dict[str, Any]]
     generated_code: Optional[Dict[str, Any]]
+    quality_assessment: Optional[Dict[str, Any]]
     quality_scores: Optional[Dict[str, float]]
     assessment_reports: List[str]
     current_turn: int
@@ -235,6 +238,7 @@ def create_initial_state(request: ConversionRequest) -> ConversionState:
         conversion_plan=None,
         project_structure_plan=None,
         generated_code=None,
+        quality_assessment=None,
         quality_scores=None,
         assessment_reports=[],
         current_turn=0,

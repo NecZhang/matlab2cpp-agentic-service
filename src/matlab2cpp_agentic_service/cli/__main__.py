@@ -4,10 +4,11 @@ CLI module entry point for MATLAB2C++ Agentic Service.
 This allows running the CLI as: python -m matlab2cpp_agentic_service.cli
 """
 
-from .run import main
+from .commands import cli
 
 if __name__ == "__main__":
-    main()
+    cli()
+
 
 
 

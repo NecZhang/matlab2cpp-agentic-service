@@ -1,0 +1,582 @@
+# Eigen C++ Library API Knowledge Base
+# Auto-injected into LLM prompts based on error context
+
+types:
+  Triplet:
+    header: "<Eigen/Sparse>"
+    purpose: "Building sparse matrices from (row, col, value) triplets"
+    example: |
+      // Required header
+      #include <Eigen/Sparse>
+      
+      // Create triplets
+      std::vector<Eigen::Triplet<double>> triplets;
+      triplets.push_back(Eigen::Triplet<double>(row, col, value));
+      
+      // Build sparse matrix
+      Eigen::SparseMatrix<double> mat(rows, cols);
+      mat.setFromTriplets(triplets.begin(), triplets.end());
+    common_mistakes:
+      - "❌ Using #include <Eigen/Dense> - Triplet is in Sparse module"
+      - "✅ Must use #include <Eigen/Sparse>"
+
+  Tensor:
+    header: "<unsupported/Eigen/CXX11/Tensor>"
+    purpose: "Multi-dimensional arrays (3D, 4D, etc.)"
+    example: |
+      // Required header
+      #include <unsupported/Eigen/CXX11/Tensor>
+      
+      // Create 3D tensor
+      Eigen::Tensor<double, 3> tensor(rows, cols, depth);
+      
+      // Access elements
+      double value = tensor(i, j, k);
+      
+      // Get dimensions
+      int dim0 = tensor.dimension(0);  // rows
+      int dim1 = tensor.dimension(1);  // cols
+      int dim2 = tensor.dimension(2);  // depth
+      
+      // Slicing (extract 2D slice)
+      auto slice = tensor.chip(k, 2);  // Get k-th slice along dimension 2
+    common_mistakes:
+      - "❌ Using #include <Eigen/Tensor> - incorrect path"
+      - "✅ Must use #include <unsupported/Eigen/CXX11/Tensor>"
+      - "❌ Using .slice() method - doesn't exist"
+      - "✅ Use .chip(index, dimension) for slicing"
+      - "❌ Mixing Matrix and Tensor types - they're incompatible"
+      - "✅ Convert: Eigen::Map<MatrixXd>(tensor.data(), rows, cols)"
+
+  TensorMap:
+    header: "<unsupported/Eigen/CXX11/Tensor>"
+    purpose: "Map existing memory to Tensor (like Eigen::Map for Matrix)"
+    example: |
+      // Map raw pointer to 3D tensor
+      double* data = ...;
+      Eigen::TensorMap<Eigen::Tensor<double, 3>> tensor(data, rows, cols, depth);
+      
+      // Access like normal tensor
+      double value = tensor(i, j, k);
+
+  MatrixXd:
+    header: "<Eigen/Dense>"
+    purpose: "Dynamic-size double matrix"
+    example: |
+      // Create matrix
+      Eigen::MatrixXd mat(rows, cols);
+      
+      // Initialize
+      mat.setZero();
+      mat.setOnes();
+      mat.setConstant(value);
+      mat.setRandom();
+      
+      // Access
+      double value = mat(i, j);
+      mat(i, j) = value;
+      
+      // Operations
+      mat.transpose();
+      mat.inverse();
+      mat.array();  // Convert to Array for element-wise ops
+
+  VectorXd:
+    header: "<Eigen/Dense>"
+    purpose: "Dynamic-size double vector (column vector)"
+    example: |
+      // Create vector
+      Eigen::VectorXd vec(size);
+      
+      // Initialize
+      vec.setZero();
+      vec.setOnes();
+      
+      // Access
+      double value = vec(i);  // NOT vec[i]!
+      vec(i) = value;
+      
+      // Special constructors
+      Eigen::VectorXd::Zero(size);
+      Eigen::VectorXd::Ones(size);
+      Eigen::VectorXd::Constant(size, value);
+
+  ArrayXXd:
+    header: "<Eigen/Dense>"
+    purpose: "Dynamic-size double array for element-wise operations"
+    example: |
+      // Create array
+      Eigen::ArrayXXd arr(rows, cols);
+      
+      // Element-wise operations
+      arr = arr1 + arr2;      // Element-wise add
+      arr = arr1 * arr2;      // Element-wise multiply
+      arr = arr1 / arr2;      // Element-wise divide
+      arr = arr.sqrt();       // Element-wise sqrt
+      arr = arr.abs();        // Element-wise absolute value
+      arr = arr.max(value);   // Element-wise max
+      
+      // Convert to/from Matrix
+      Eigen::MatrixXd mat = arr.matrix();
+      Eigen::ArrayXXd arr2 = mat.array();
+
+methods:
+  "array().where()":
+    status: "DOES NOT EXIST"
+    replacement: "select(condition, true_value, false_value)"
+    example: |
+      // ❌ WRONG - MATLAB-style (doesn't exist in Eigen)
+      result = I.array().where(check, In.array());
+      
+      // ✅ CORRECT - Eigen style
+      result = check.select(In, I);
+      
+      // Alternative using cwiseMax/cwiseMin
+      result = check.cast<double>().cwiseProduct(In.array()) + 
+               (1.0 - check.cast<double>()).cwiseProduct(I.array());
+
+  "hasNonZero()":
+    status: "DOES NOT EXIST"
+    replacement: "(array != 0).any()"
+    example: |
+      // ❌ WRONG
+      if (array.hasNonZero()) { ... }
+      
+      // ✅ CORRECT
+      if ((array.array() != 0).any()) { ... }
+
+  "hasInf()":
+    status: "DOES NOT EXIST"
+    replacement: "(array.array() == inf).any()"
+    example: |
+      // ❌ WRONG
+      if (array.hasInf()) { ... }
+      
+      // ✅ CORRECT
+      if ((array.array() == std::numeric_limits<double>::infinity()).any()) { ... }
+
+  "hasNaN()":
+    status: "DOES NOT EXIST"
+    replacement: "array.array().isNaN().any()"
+    example: |
+      // ❌ WRONG
+      if (array.hasNaN()) { ... }
+      
+      // ✅ CORRECT  
+      if (array.array().isNaN().any()) { ... }
+
+  "tensor.slice()":
+    status: "DOES NOT EXIST"
+    replacement: "tensor.chip(index, dimension)"
+    example: |
+      // ❌ WRONG
+      auto slice = tensor.slice(offset, extent);
+      
+      // ✅ CORRECT - Extract one slice
+      auto slice = tensor.chip(k, 2);  // Get k-th slice along dimension 2
+      
+      // For ranges, use reshape or manual extraction
+
+  "maxCoeff(Index*)":
+    limitation: "Only works on VECTORS, not matrices"
+    alternative: "Use maxCoeff(&row, &col) for matrices"
+    example: |
+      // ❌ WRONG - Calling vector method on matrix
+      Eigen::Index idx;
+      double max_val = matrix.maxCoeff(&idx);
+      
+      // ✅ CORRECT - Use 2D version for matrices
+      Eigen::Index row, col;
+      double max_val = matrix.maxCoeff(&row, &col);
+      
+      // Alternative: Flatten to vector first
+      Eigen::VectorXd vec = Eigen::Map<Eigen::VectorXd>(matrix.data(), matrix.size());
+      Eigen::Index idx;
+      double max_val = vec.maxCoeff(&idx);
+
+common_errors:
+  "Triplet is not a member":
+    fix: "Add #include <Eigen/Sparse> header"
+    explanation: "Triplet is in the Sparse module, not Dense"
+    example: |
+      // Before
+      #include <Eigen/Dense>
+      std::vector<Eigen::Triplet<double>> triplets;  // ❌ ERROR
+      
+      // After
+      #include <Eigen/Dense>
+      #include <Eigen/Sparse>  // ← Add this
+      std::vector<Eigen::Triplet<double>> triplets;  // ✅ Works
+
+  "has no member named 'where'":
+    fix: "Replace array().where() with select()"
+    explanation: "Eigen doesn't have .where() - use .select() instead"
+    example: |
+      // Before
+      result = array.where(condition, value);  // ❌ No .where()
+      
+      // After
+      result = condition.select(value, array);  // ✅ Use .select()
+
+  "invalid initialization of reference .* Tensor .* from .* MatrixXd":
+    fix: "Cannot pass MatrixXd where Tensor is expected - types are incompatible"
+    explanation: "Matrix and Tensor are different types - you must convert or change parameter type"
+    example: |
+      // If function expects Tensor:
+      void foo(const Eigen::Tensor<double, 3>& tensor);
+      
+      // ❌ WRONG - Can't pass Matrix
+      Eigen::MatrixXd mat;
+      foo(mat);  // ERROR
+      
+      // ✅ Option 1: Change function to accept Matrix
+      void foo(const Eigen::MatrixXd& mat);
+      
+      // ✅ Option 2: Convert Matrix to Tensor
+      Eigen::Tensor<double, 3> tensor = ...;  // Reshape/convert mat
+      foo(tensor);
+
+  "operator= .* tuple .* expects N arguments, M provided":
+    fix: "Tuple size mismatch - check function return type"
+    explanation: "Function returns N values but you're only capturing M"
+    example: |
+      // Function returns 3 values
+      std::tuple<MatrixXd, MatrixXd, MatrixXd> foo();
+      
+      // ❌ WRONG - Only capturing 2
+      std::tie(a, b) = foo();  // ERROR: expects 3, got 2
+      
+      // ✅ CORRECT - Capture all 3
+      std::tie(a, b, c) = foo();
+      
+      // Or use structured bindings (C++17)
+      auto [a, b, c] = foo();
+
+  "was not declared in this scope":
+    fix: "Variable used before declaration - declare it first"
+    explanation: "C++ requires variables to be declared before use (unlike MATLAB)"
+    example: |
+      // ❌ WRONG
+      result = sxm + sym;  // sxm, sym not declared!
+      
+      // ✅ CORRECT
+      int sxm = ..., sym = ...;  // Declare first
+      result = sxm + sym;
+
+  "cannot bind rvalue .* to lvalue":
+    fix: "Trying to assign to const variable - remove const"
+    explanation: "const variables cannot be modified"
+    example: |
+      // ❌ WRONG
+      const Eigen::VectorXd vec = ...;
+      vec = new_value;  // ERROR: vec is const!
+      
+      // ✅ CORRECT
+      Eigen::VectorXd vec = ...;  // Remove const
+      vec = new_value;
+
+  "YOU_MIXED_DIFFERENT_NUMERIC_TYPES":
+    fix: "Use .cast<T>() to convert types explicitly"
+    explanation: "Eigen requires explicit type conversions"
+    example: |
+      // ❌ WRONG - Mixing int and double
+      Eigen::MatrixXd result = int_matrix;
+      
+      // ✅ CORRECT - Explicit cast
+      Eigen::MatrixXd result = int_matrix.cast<double>();
+
+  "YOU_TRIED_CALLING_A_VECTOR_METHOD_ON_A_MATRIX":
+    fix: "Use matrix-specific version or flatten first"
+    explanation: "Some methods like maxCoeff(&idx) only work on vectors"
+    example: |
+      // ❌ WRONG
+      Eigen::Index idx;
+      matrix.maxCoeff(&idx);  // Matrix needs 2 indices!
+      
+      // ✅ CORRECT - Option 1: Use matrix version
+      Eigen::Index row, col;
+      matrix.maxCoeff(&row, &col);
+      
+      // ✅ CORRECT - Option 2: Flatten to vector
+      Eigen::VectorXd vec = Eigen::Map<Eigen::VectorXd>(
+          matrix.data(), matrix.size()
+      );
+      Eigen::Index idx;
+      vec.maxCoeff(&idx);
+
+indexing:
+  matrix_indexing:
+    syntax: "matrix(row, col)"
+    notes:
+      - "Use parentheses (), NOT brackets []"
+      - "0-based indexing (like MATLAB with -1)"
+    example: |
+      // ❌ WRONG
+      value = matrix[i][j];
+      value = matrix[i, j];
+      
+      // ✅ CORRECT
+      value = matrix(i, j);
+
+  tensor_indexing:
+    syntax: "tensor(i, j, k, ...)"
+    notes:
+      - "Use parentheses with all indices"
+      - "Index must be integer type (not double!)"
+    example: |
+      // ❌ WRONG - Using double as index
+      int idx = T(i, j);  // T(i,j) returns double
+      value = tensor(i, j, T(i, j));  // ERROR: T(i,j) is double!
+      
+      // ✅ CORRECT - Cast to int first
+      int idx = static_cast<int>(T(i, j));
+      value = tensor(i, j, idx);
+
+conversions:
+  matrix_to_tensor:
+    method: "Eigen::TensorMap or reshape"
+    example: |
+      // From MatrixXd to Tensor<double, 3>
+      Eigen::MatrixXd mat(rows, cols);
+      
+      // Option 1: Map (if data layout is correct)
+      Eigen::TensorMap<Eigen::Tensor<double, 3>> tensor(
+          mat.data(), dim0, dim1, dim2
+      );
+      
+      // Option 2: Reshape (if needed)
+      Eigen::Tensor<double, 3> tensor = ...;  // Copy data with reshape
+
+  tensor_to_matrix:
+    method: "Eigen::Map"
+    example: |
+      // From Tensor<double, 3> to MatrixXd
+      Eigen::Tensor<double, 3> tensor(rows, cols, depth);
+      
+      // Map to matrix (flatten or extract slice)
+      Eigen::Map<Eigen::MatrixXd> mat(
+          tensor.data(), rows, cols
+      );
+
+  array_to_matrix:
+    method: ".matrix()"
+    example: |
+      Eigen::ArrayXXd arr = ...;
+      Eigen::MatrixXd mat = arr.matrix();
+
+  matrix_to_array:
+    method: ".array()"
+    example: |
+      Eigen::MatrixXd mat = ...;
+      Eigen::ArrayXXd arr = mat.array();
+
+best_practices:
+  const_correctness:
+    rule: "Don't mark variables as const if they will be modified later"
+    example: |
+      // ❌ WRONG
+      const Eigen::VectorXd vec = initial_value;
+      vec = new_value;  // ERROR: vec is const!
+      
+      // ✅ CORRECT
+      Eigen::VectorXd vec = initial_value;
+      vec = new_value;  // OK
+
+  return_types:
+    rule: "Ensure function signature matches return type"
+    example: |
+      // If function returns 3 values:
+      std::tuple<MatrixXd, MatrixXd, MatrixXd> foo();
+      
+      // Header must declare:
+      std::tuple<Eigen::MatrixXd, Eigen::MatrixXd, Eigen::MatrixXd> foo();
+      
+      // Caller must capture all 3:
+      auto [a, b, c] = foo();  // C++17
+      // OR
+      std::tie(a, b, c) = foo();  // C++11
+
+  namespace_usage:
+    rule: "Always use Eigen:: prefix for Eigen types"
+    example: |
+      // ❌ WRONG
+      MatrixXd mat;  // MatrixXd not in global namespace!
+      
+      // ✅ CORRECT
+      Eigen::MatrixXd mat;
+      
+      // Alternative: using directive (only in .cpp, not .h)
+      using Eigen::MatrixXd;
+      MatrixXd mat;  // OK in .cpp file
+
+initialization:
+  static_methods:
+    - "Eigen::MatrixXd::Zero(rows, cols)"
+    - "Eigen::MatrixXd::Ones(rows, cols)"
+    - "Eigen::MatrixXd::Constant(rows, cols, value)"
+    - "Eigen::MatrixXd::Random(rows, cols)"
+    - "Eigen::MatrixXd::Identity(size, size)"
+  example: |
+    // Create zero matrix
+    Eigen::MatrixXd mat = Eigen::MatrixXd::Zero(10, 10);
+    
+    // Create vector of ones
+    Eigen::VectorXd vec = Eigen::VectorXd::Ones(10);
+    
+    // WRONG: Not MatrixXd::Zero(10, 10, 10) for 3D!
+    // Use Tensor for 3D: Eigen::Tensor<double, 3>::Zero(10, 10, 10)
+
+# ============================================================================
+# OPERATOR RULES (CRITICAL FOR ERROR PREVENTION)
+# ============================================================================
+
+operators:
+  scalar_operations:
+    description: "Matrix/Vector scalar operations require .array() conversion"
+    examples:
+      - wrong: "VectorXd v; v += 1;"
+        correct: "VectorXd v; v.array() += 1;"
+        explanation: "Cannot add scalar to Vector directly. Use .array() for element-wise operations."
+        error_pattern: "no match for 'operator\\+='.* VectorXd.* and.* int"
+      
+      - wrong: "MatrixXd m; m *= 2;"
+        correct: "MatrixXd m; m.array() *= 2;"
+        explanation: "Scalar multiplication on all elements requires .array()"
+        error_pattern: "no match for 'operator\\*='.* MatrixXd.* and.* int"
+      
+      - wrong: "VectorXd v; v = v + 1;"
+        correct: "VectorXd v; v = (v.array() + 1).matrix();"
+        explanation: "Use .array() for element-wise add, then .matrix() to convert back"
+        error_pattern: "no match for 'operator\\+'.* VectorXd.* and.* int"
+  
+  comparison_operations:
+    description: "Comparisons return Array of bool, not single bool"
+    examples:
+      - wrong: "if (matrix < 5) { ... }"
+        correct: "if ((matrix.array() < 5).any()) { ... }"
+        explanation: "Comparison returns array of bools. Use .any() or .all() to get single bool."
+        error_pattern: "no match for 'operator<'.* operand types.*Matrix.*and.*int"
+      
+      - wrong: "if (vector == 0) { ... }"
+        correct: "if ((vector.array() == 0).all()) { ... }"
+        explanation: "Use .all() to check if all elements match, or .any() to check if any match."
+      
+      - wrong: "bool result = (matrix > value);"
+        correct: "Eigen::Array<bool, -1, -1> result = (matrix.array() > value);"
+        explanation: "Comparison returns array of bools, not single bool"
+  
+  element_wise_operations:
+    description: "Element-wise ops need .array() conversion"
+    examples:
+      - wrong: "result = matrix1 * matrix2;  // If you want element-wise"
+        correct: "result = matrix1.array() * matrix2.array();"
+        explanation: "Without .array(), * is matrix multiplication. Use .array() for element-wise."
+      
+      - wrong: "result = matrix / scalar;"
+        correct: "result = matrix.array() / scalar;"
+        explanation: "Division requires .array() for element-wise operation"
+  
+  arithmetic_with_constants:
+    description: "Adding constants to Matrix/Vector"
+    examples:
+      - wrong: "MatrixXd m; m = m + Eigen::MatrixXd::Ones(rows, cols);"
+        correct: "MatrixXd m; m.array() += 1;"
+        explanation: "More efficient to use .array() than creating Ones matrix"
+      
+      - wrong: "VectorXd v = VectorXd::Ones(n) * 5;"
+        correct: "VectorXd v = VectorXd::Constant(n, 5);"
+        explanation: "Use Constant() constructor for efficiency"
+
+# ============================================================================
+# NAMESPACE PATTERNS (FIX COMMON NAMESPACE ERRORS)
+# ============================================================================
+
+namespace_patterns:
+  duplicate_namespace_function:
+    pattern: "namespace::namespace\\("
+    error: "'X' is not a member of 'X'"
+    explanation: "Don't repeat namespace and function name"
+    examples:
+      - wrong: "DistanceMap = msfm::msfm(SpeedImage, SourcePoint);"
+        correct: "DistanceMap = msfm::msfm_function(SpeedImage, SourcePoint);"
+        better: "using namespace msfm; DistanceMap = msfm_function(SpeedImage, SourcePoint);"
+        best: "Rename function to avoid collision, e.g., compute() instead of msfm()"
+        fix: "Remove duplicate: Change msfm::msfm to just msfm() if calling from outside namespace"
+  
+  correct_namespace_usage:
+    rule: "Namespace for file scope, unique function names"
+    example: |
+      // File: msfm.h
+      namespace msfm {
+          // ❌ WRONG: Function name same as namespace
+          MatrixXd msfm(const MatrixXd& input);
+          
+          // ✅ CORRECT: Unique function name
+          MatrixXd compute(const MatrixXd& input);
+          // OR
+          MatrixXd fast_marching(const MatrixXd& input);
+      }
+      
+      // Calling from another file:
+      result = msfm::compute(input);  // Clear and unambiguous
+
+# ============================================================================
+# COMMON VARIABLE DEFAULTS (FOR UNDECLARED VARIABLES)
+# ============================================================================
+
+common_variables:
+  check:
+    type: "bool"
+    typical_value: "true"
+    context: "Used for boundary checking"
+    example: "bool check = true;"
+  
+  stepsize:
+    type: "double"
+    typical_value: "0.5"
+    context: "Step size for iterative algorithms"
+    example: "double stepsize = 0.5;"
+  
+  tolerance:
+    type: "double"
+    typical_value: "1e-6"
+    context: "Convergence tolerance"
+    example: "double tolerance = 1e-6;"
+  
+  maxiter:
+    type: "int"
+    typical_value: "1000"
+    context: "Maximum iterations"
+    example: "int maxiter = 1000;"
+  
+  i:
+    type: "int"
+    typical_value: "0"
+    context: "Loop counter"
+    example: "int i = 0;"
+  
+  j:
+    type: "int"
+    typical_value: "0"
+    context: "Loop counter"
+    example: "int j = 0;"
+  
+  k:
+    type: "int"
+    typical_value: "0"
+    context: "Loop counter"
+    example: "int k = 0;"
+
+# ============================================================================
+# CRITICAL REMINDERS (ALWAYS SHOW THESE)
+# ============================================================================
+
+critical_reminders:
+  - "ALWAYS use .array() before scalar operations on Matrix/Vector (+=, *=, etc.)"
+  - "Comparisons return Array<bool>, use .any() or .all() to get single bool"
+  - "NEVER use namespace::namespace() pattern - rename function or use 'using namespace'"
+  - "Declare ALL variables before use (C++ is not MATLAB)"
+  - "Use std::min/std::max with #include <algorithm>, not bare min/max"
+  - "Tensor and Matrix are INCOMPATIBLE types - must convert explicitly"
+
+

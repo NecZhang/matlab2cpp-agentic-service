@@ -42,6 +42,44 @@ class LLMConfig(BaseModel):
     base_url: Optional[str] = Field(default=None, description="Base URL for API requests")
 
 
+class SelectiveLLMConfig(BaseModel):
+    """Configuration for selective LLM services (general vs coding models)."""
+    # General model for reasoning agents (analyzer, planner, assessor, project_manager)
+    general_provider: str = Field(default="vllm", description="General model provider")
+    general_model: str = Field(default="gpt-3.5-turbo", description="General model name")
+    general_api_key: Optional[str] = Field(default=None, description="General model API key")
+    general_temperature: float = Field(default=0.1, description="General model temperature")
+    general_max_tokens: int = Field(default=4000, description="General model max tokens")
+    general_timeout: int = Field(default=300, description="General model timeout")
+    general_vllm_endpoint: str = Field(default="http://localhost:8000/v1", description="General model vLLM endpoint")
+    general_vllm_model_name: Optional[str] = Field(default=None, description="General model vLLM name")
+    general_base_url: Optional[str] = Field(default=None, description="General model base URL")
+    
+    # Coding model for C++ generation
+    coding_provider: str = Field(default="vllm", description="Coding model provider")
+    coding_model: str = Field(default="Qwen/Qwen3-Coder-30B-A3B-Instruct-FP8", description="Coding model name")
+    coding_api_key: Optional[str] = Field(default=None, description="Coding model API key")
+    coding_temperature: float = Field(default=0.1, description="Coding model temperature")
+    coding_max_tokens: int = Field(default=4000, description="Coding model max tokens")
+    coding_timeout: int = Field(default=300, description="Coding model timeout")
+    coding_vllm_endpoint: str = Field(default="http://192.168.6.19:8011/v1", description="Coding model vLLM endpoint")
+    coding_vllm_model_name: Optional[str] = Field(default="Qwen/Qwen3-Coder-30B-A3B-Instruct-FP8", description="Coding model vLLM name")
+    coding_base_url: Optional[str] = Field(default="http://192.168.6.19:8011/v1", description="Coding model base URL")
+
+
+class CPPTestingConfig(BaseModel):
+    """Configuration for C++ testing framework."""
+    enable_cpp_testing: bool = Field(default=True, description="Enable C++ compilation and testing")
+    testing_mode: str = Field(default="docker", description="Testing mode: docker, native, ci")
+    compilation_timeout: int = Field(default=300, description="Compilation timeout in seconds")
+    execution_timeout: int = Field(default=60, description="Execution timeout in seconds")
+    docker_image: str = Field(default="matlab2cpp/testing:latest", description="Docker image for testing")
+    test_data_generation: bool = Field(default=True, description="Generate test data automatically")
+    performance_benchmarking: bool = Field(default=False, description="Enable performance benchmarking")
+    quality_threshold: float = Field(default=0.7, description="Minimum quality score threshold")
+    tolerance: float = Field(default=1e-6, description="Numerical tolerance for comparisons")
+
+
 class AnalysisConfig(BaseModel):
     """Configuration for MATLAB code analysis."""
     max_file_size: int = Field(default=100000, description="Maximum file size to analyze (bytes)")
@@ -78,8 +116,10 @@ class ProjectConfig(BaseModel):
 class Config(BaseModel):
     """Main configuration class."""
     llm: LLMConfig = Field(default_factory=LLMConfig)
+    selective_llm: SelectiveLLMConfig = Field(default_factory=SelectiveLLMConfig)
     analysis: AnalysisConfig = Field(default_factory=AnalysisConfig)
     conversion: ConversionConfig = Field(default_factory=ConversionConfig)
+    cpp_testing: CPPTestingConfig = Field(default_factory=CPPTestingConfig)
     logging: LoggingConfig = Field(default_factory=LoggingConfig)
     project: ProjectConfig = Field(default_factory=ProjectConfig)
     
@@ -152,6 +192,64 @@ def load_config(config_path: Optional[Path] = None, env_path: Optional[Path] = N
     
     if os.getenv("LLM_API_KEY"):
         config.llm.api_key = os.getenv("LLM_API_KEY")
+    
+    # Selective LLM configuration - General model
+    if os.getenv("GENERAL_MODEL_PROVIDER"):
+        config.selective_llm.general_provider = os.getenv("GENERAL_MODEL_PROVIDER")
+    
+    if os.getenv("GENERAL_MODEL"):
+        config.selective_llm.general_model = os.getenv("GENERAL_MODEL")
+    
+    if os.getenv("GENERAL_MODEL_API_KEY"):
+        config.selective_llm.general_api_key = os.getenv("GENERAL_MODEL_API_KEY")
+    
+    if os.getenv("GENERAL_MODEL_TEMPERATURE"):
+        config.selective_llm.general_temperature = float(os.getenv("GENERAL_MODEL_TEMPERATURE"))
+    
+    if os.getenv("GENERAL_MODEL_MAX_TOKENS"):
+        config.selective_llm.general_max_tokens = int(os.getenv("GENERAL_MODEL_MAX_TOKENS"))
+    
+    if os.getenv("GENERAL_MODEL_TIMEOUT"):
+        config.selective_llm.general_timeout = int(os.getenv("GENERAL_MODEL_TIMEOUT"))
+    
+    if os.getenv("GENERAL_VLLM_ENDPOINT"):
+        config.selective_llm.general_vllm_endpoint = os.getenv("GENERAL_VLLM_ENDPOINT")
+        config.selective_llm.general_base_url = os.getenv("GENERAL_VLLM_ENDPOINT")
+    
+    if os.getenv("GENERAL_VLLM_MODEL_NAME"):
+        config.selective_llm.general_vllm_model_name = os.getenv("GENERAL_VLLM_MODEL_NAME")
+    
+    if os.getenv("GENERAL_BASE_URL"):
+        config.selective_llm.general_base_url = os.getenv("GENERAL_BASE_URL")
+    
+    # Selective LLM configuration - Coding model
+    if os.getenv("CODING_MODEL_PROVIDER"):
+        config.selective_llm.coding_provider = os.getenv("CODING_MODEL_PROVIDER")
+    
+    if os.getenv("CODING_MODEL"):
+        config.selective_llm.coding_model = os.getenv("CODING_MODEL")
+    
+    if os.getenv("CODING_MODEL_API_KEY"):
+        config.selective_llm.coding_api_key = os.getenv("CODING_MODEL_API_KEY")
+    
+    if os.getenv("CODING_MODEL_TEMPERATURE"):
+        config.selective_llm.coding_temperature = float(os.getenv("CODING_MODEL_TEMPERATURE"))
+    
+    if os.getenv("CODING_MODEL_MAX_TOKENS"):
+        config.selective_llm.coding_max_tokens = int(os.getenv("CODING_MODEL_MAX_TOKENS"))
+    
+    if os.getenv("CODING_MODEL_TIMEOUT"):
+        config.selective_llm.coding_timeout = int(os.getenv("CODING_MODEL_TIMEOUT"))
+    
+    if os.getenv("CODING_VLLM_ENDPOINT"):
+        config.selective_llm.coding_vllm_endpoint = os.getenv("CODING_VLLM_ENDPOINT")
+        config.selective_llm.coding_base_url = os.getenv("CODING_VLLM_ENDPOINT")
+    
+    if os.getenv("CODING_VLLM_MODEL_NAME"):
+        config.selective_llm.coding_vllm_model_name = os.getenv("CODING_VLLM_MODEL_NAME")
+    
+    if os.getenv("CODING_BASE_URL"):
+        config.selective_llm.coding_base_url = os.getenv("CODING_BASE_URL")
     
     # Analysis configuration
     if os.getenv("MAX_FILE_SIZE"):

@@ -1,0 +1,428 @@
+# API Hallucinations - Methods that DON'T exist but LLMs commonly generate
+# This database maps fake/hallucinated APIs to correct C++ implementations
+
+# ============================================================================
+# EIGEN LIBRARY HALLUCINATIONS
+# ============================================================================
+
+# ============================================================================
+# TENSOR & VOLUME OPERATIONS (Use matlab::tensor helpers!)
+# ============================================================================
+
+tensor_operations:
+  slice_method:
+    exists: false
+    reason: "Eigen::Tensor does NOT have a .slice() method - this is a common LLM hallucination"
+    correct_api: "matlab::tensor::slice(tensor, index, dimension)"
+    library: "tensor_helpers.h"
+    example: |
+      // ❌ HALLUCINATION - Eigen::Tensor has NO .slice() method!
+      auto Gx = GradientVolume.slice(Eigen::array<int, 3>{{0, 0, 0}});
+      auto slice = tensor.slice(Eigen::array<int, 3>{0, 0, k}, {rows, cols, 1});
+      
+      // ✅ CORRECT - Use matlab::tensor::slice() helper
+      #include "tensor_helpers.h"
+      auto Gx = matlab::tensor::slice(GradientVolume, 0, 2);  // Extract channel 0 along dimension 2
+      auto slice = matlab::tensor::slice(tensor, k, 2);  // Extract k-th slice along dimension 2
+      
+      // Dimension parameter:
+      //   0 = extract along rows    (tensor(index, :, :))
+      //   1 = extract along cols    (tensor(:, index, :))
+      //   2 = extract along depth   (tensor(:, :, index))
+    
+    alternatives:
+      - "tensor.chip(index, dimension)  // Returns Tensor<T, N-1>, not Matrix"
+      - "matlab::tensor::slice(tensor, index, dim)  // Returns MatrixXd (recommended)"
+  
+  manual_gradient:
+    exists: false
+    reason: "Manual gradient loops are error-prone and miss boundary conditions"
+    correct_api: "matlab::tensor::gradient3d() or gradient2d()"
+    library: "tensor_helpers.h"
+    example: |
+      // ❌ BAD - Manual gradient computation (buggy, forgets boundaries)
+      for (int i = 1; i < rows-1; ++i) {
+          for (int j = 1; j < cols-1; ++j) {
+              Gx(i,j) = (matrix(i+1,j) - matrix(i-1,j)) / 2.0;
+              Gy(i,j) = (matrix(i,j+1) - matrix(i,j-1)) / 2.0;
+          }
+      }
+      // Missing: boundary handling!
+      
+      // ✅ CORRECT - Use tested helper (handles boundaries correctly)
+      #include "tensor_helpers.h"
+      auto [Gx, Gy] = matlab::tensor::gradient2d(matrix);
+      
+      // For 3D volumes:
+      auto [Gx, Gy, Gz] = matlab::tensor::gradient3d(volume);
+      
+      // For gradient magnitude:
+      auto mag = matlab::tensor::gradient_magnitude(volume);  // sqrt(Gx^2 + Gy^2 + Gz^2)
+    
+    matlab_equivalent: "[Gx, Gy, Gz] = gradient(volume)"
+  
+  manual_rk4:
+    exists: false
+    reason: "Manual RK4 loops are complex, buggy, and hard to maintain"
+    correct_api: "matlab::rk4::trace_gradient_field()"
+    library: "rk4_helpers.h"
+    example: |
+      // ❌ BAD - Manual RK4 integration (50+ lines, often buggy)
+      for (int iter = 0; iter < max_iter; ++iter) {
+          // Interpolate gradient at current position
+          double gx = interpolate(Gx, pos_x, pos_y);  // Not implemented!
+          double gy = interpolate(Gy, pos_x, pos_y);
+          
+          // RK4 steps
+          k1_x = gx; k1_y = gy;
+          k2_x = interpolate(Gx, pos_x + 0.5*h*k1_x, pos_y + 0.5*h*k1_y);
+          // ... more manual steps, often with bugs
+      }
+      
+      // ✅ CORRECT - Use production-quality helper
+      #include "rk4_helpers.h"
+      #include "tensor_helpers.h"
+      
+      auto [Gx, Gy] = matlab::tensor::gradient2d(DistanceMap);
+      auto path = matlab::rk4::trace_gradient_field(
+          Gx, Gy,           // Gradient field
+          StartPoint,       // Eigen::Vector2d
+          Stepsize,         // double
+          10000,            // max iterations
+          0.01              // convergence threshold
+      );
+      // Returns: 2 x N matrix of path points
+    
+    matlab_equivalent: "Manual RK4 loop in shortestpath.m"
+    benefits:
+      - "Tested and debugged"
+      - "Handles boundaries correctly"
+      - "Built-in convergence detection"
+      - "50+ lines → 3 lines"
+
+eigen:
+  hasNonZero:
+    exists: false
+    reason: "NumPy/MATLAB influence - doesn't exist in Eigen"
+    correct_api: "(array != 0).any()"
+    example: |
+      // ❌ HALLUCINATION - This method doesn't exist!
+      if (array.hasNonZero()) { ... }
+      
+      // ✅ CORRECT Eigen API
+      if ((array.array() != 0).any()) { ... }
+    
+    alternatives:
+      - "(array.array() != 0).any()  // Check if any element is non-zero"
+      - "(array.array() != 0).all()  // Check if all elements are non-zero"
+      - "array.array().count()  // Count non-zero elements (returns number > 0)"
+  
+  where:
+    exists: false
+    reason: "NumPy/Pandas influence - NumPy has .where(), Eigen doesn't"
+    correct_api: "select(condition, true_value, false_value)"
+    example: |
+      // ❌ HALLUCINATION
+      result = array.where(condition, value);
+      
+      // ✅ CORRECT Eigen API
+      result = condition.select(value, array);
+      
+      // Note: Order is (condition, true_value, false_value)
+      result = (array > 0).select(array, 0);  // Set negative values to 0
+    
+    alternatives:
+      - "condition.select(trueVal, falseVal)  // Ternary selection"
+      - "(condition).cast<double>().cwiseProduct(trueVal) + (!condition).cast<double>().cwiseProduct(falseVal)"
+  
+  hasNonZero:
+    exists: false
+    correct_api: "(array != 0).any()"
+  
+  hasInf:
+    exists: false
+    correct_api: "(array.array() == std::numeric_limits<double>::infinity()).any()"
+  
+  hasNaN:
+    exists: false
+    correct_api: "array.array().isNaN().any()"
+  
+  reshape:
+    exists: "LIMITED"
+    reason: "Eigen has .reshaped() in newer versions, but different API than NumPy"
+    correct_api: "Eigen::Map<MatrixXd>(data, new_rows, new_cols)"
+    example: |
+      // ❌ HALLUCINATION - NumPy/MATLAB style
+      mat.reshape(rows, cols);
+      mat.reshape(Eigen::IndexPair<int>(rows, cols));
+      
+      // ✅ CORRECT for Vectors → Matrix
+      Eigen::VectorXd vec(12);
+      Eigen::Map<Eigen::Matrix<double, 3, 4>> mat(vec.data(), 3, 4);
+      
+      // ✅ For Eigen 3.4+
+      auto reshaped = vec.reshaped(3, 4);  // Returns expression, not copy
+    
+    alternatives:
+      - "Eigen::Map<MatrixXd>(vec.data(), rows, cols)  // View as matrix"
+      - "vec.reshaped(rows, cols)  // Eigen 3.4+ only, returns expression"
+  
+  flatten:
+    exists: false
+    correct_api: "Eigen::Map<VectorXd>(matrix.data(), matrix.size())"
+    example: |
+      // ❌ HALLUCINATION
+      vec = matrix.flatten();
+      
+      // ✅ CORRECT - Map matrix memory as vector
+      Eigen::VectorXd vec = Eigen::Map<Eigen::VectorXd>(
+          matrix.data(), matrix.size()
+      );
+      
+      // Alternative: Copy to vector
+      Eigen::VectorXd vec(matrix.size());
+      vec = Eigen::Map<Eigen::VectorXd>(matrix.data(), matrix.size());
+  
+  nonzero:
+    exists: false
+    reason: "NumPy influence - np.nonzero() returns indices"
+    correct_api: "Manual loop or (array != 0)"
+    example: |
+      // ❌ HALLUCINATION
+      auto indices = array.nonzero();
+      
+      // ✅ CORRECT - Get boolean mask
+      Eigen::Array<bool, -1, -1> mask = (array.array() != 0);
+      
+      // ✅ CORRECT - Get indices (manual)
+      std::vector<int> indices;
+      for (int i = 0; i < array.size(); i++) {
+          if (array(i) != 0) {
+              indices.push_back(i);
+          }
+      }
+  
+  find:
+    exists: false
+    reason: "MATLAB influence - MATLAB has find() function"
+    correct_api: "Manual iteration"
+    example: |
+      // ❌ HALLUCINATION
+      indices = find(array);
+      
+      // ✅ CORRECT - Manual find
+      std::vector<int> indices;
+      for (int i = 0; i < array.rows(); i++) {
+          for (int j = 0; j < array.cols(); j++) {
+              if (array(i, j) != 0) {
+                  indices.push_back(i * array.cols() + j);
+              }
+          }
+      }
+  
+  slice:
+    exists: "DIFFERENT API"
+    reason: "Tensors use .chip(), not .slice()"
+    correct_api: "tensor.chip(index, dimension)"
+    example: |
+      // ❌ HALLUCINATION
+      auto slice = tensor.slice(start, end);
+      
+      // ✅ CORRECT for Tensors
+      auto slice = tensor.chip(k, 2);  // Extract k-th slice along dimension 2
+      
+      // ✅ CORRECT for Matrices - use .block()
+      auto block = matrix.block(start_row, start_col, num_rows, num_cols);
+  
+  IndexPair:
+    exists: "DIFFERENT USAGE"
+    reason: "IndexPair is for tensor contraction, not reshaping"
+    correct_usage: "Tensor contraction indices"
+    wrong_usage: "reshape(IndexPair<int>(rows, cols))"
+    example: |
+      // ❌ WRONG - IndexPair not for reshaping!
+      vec.reshape(Eigen::IndexPair<int>(rows, cols));
+      
+      // ✅ CORRECT - IndexPair for tensor contraction
+      Eigen::array<Eigen::IndexPair<int>, 1> product_dims = {
+          Eigen::IndexPair<int>(1, 0)
+      };
+      result = tensor1.contract(tensor2, product_dims);
+
+# ============================================================================
+# OPENCV HALLUCINATIONS (if using OpenCV)
+# ============================================================================
+
+opencv:
+  dilate:
+    correct_signature: "cv::dilate(src, dst, kernel, anchor, iterations)"
+    common_mistake: "Calling as method: image.dilate()"
+    example: |
+      // ❌ WRONG
+      result = image.dilate(kernel);
+      
+      // ✅ CORRECT
+      cv::Mat result;
+      cv::dilate(image, result, kernel);
+
+# ============================================================================
+# STANDARD LIBRARY HALLUCINATIONS
+# ============================================================================
+
+stdlib:
+  min_without_std:
+    issue: "Using min() without std:: or #include <algorithm>"
+    correct: "std::min(a, b)"
+    example: |
+      // ❌ WRONG
+      double result = min(value, 100);
+      
+      // ✅ CORRECT
+      #include <algorithm>
+      double result = std::min(value, 100.0);  // Same types!
+      
+      // ✅ CORRECT - Generic
+      double result = std::min<double>(value, 100);
+  
+  max_without_std:
+    issue: "Using max() without std:: or #include <algorithm>"
+    correct: "std::max(a, b)"
+    example: |
+      // ❌ WRONG
+      double result = max(value, 0);
+      
+      // ✅ CORRECT
+      #include <algorithm>
+      double result = std::max(value, 0.0);  // Same types!
+
+# ============================================================================
+# TEST HARNESS & TYPE CONVERSION ISSUES
+# ============================================================================
+
+test_harness:
+  msfm_source_points:
+    issue: "MSFM expects MatrixXd (Nx2), but test harness often uses vector<Vector2i>"
+    reason: "MATLAB represents points as matrices, C++ has multiple representations"
+    correct_api: "msfm::helpers::vector_to_matrix()"
+    library: "msfm_helpers.h"
+    example: |
+      // ❌ WRONG - Type mismatch!
+      std::vector<Eigen::Vector2i> source_points = {posD};
+      auto distance_map = msfm::msfm(speed_image, source_points);
+      // ERROR: no matching function for call to 'msfm(Eigen::MatrixXd&, std::vector<Eigen::Vector2i>&)'
+      
+      // ✅ CORRECT - Convert vector to matrix
+      #include "msfm_helpers.h"
+      std::vector<Eigen::Vector2i> source_points = {posD};
+      Eigen::MatrixXd source_matrix = msfm::helpers::vector_to_matrix(source_points);  // Note: msfm::helpers namespace!
+      auto distance_map = msfm::msfm(speed_image, source_matrix);
+      
+      // ✅ ALTERNATIVE - Create matrix directly
+      Eigen::MatrixXd source_matrix(1, 2);
+      source_matrix << posD.x(), posD.y();
+      auto distance_map = msfm::msfm(speed_image, source_matrix);
+    
+    function_signature: |
+      Eigen::MatrixXd msfm(const Eigen::MatrixXd& speed, const Eigen::MatrixXd& source_points);
+      // source_points: Nx2 matrix where each row is [x, y]
+    
+    prevention: "Always convert point vectors/lists to Nx2 MatrixXd before calling MSFM"
+
+# ============================================================================
+# MATLAB-SPECIFIC HALLUCINATIONS
+# ============================================================================
+
+matlab_inspired:
+  imdilate:
+    matlab: "imdilate(I, SE)"
+    cpp_library: "opencv"
+    cpp_function: "cv::dilate(src, dst, kernel)"
+    explanation: "MATLAB's imdilate has no direct C++ equivalent in Eigen"
+    example: |
+      // MATLAB
+      B = imdilate(I, strel('disk', 5));
+      
+      // ❌ WRONG - Eigen doesn't have this
+      B = I.array().dilate(S);
+      
+      // ✅ CORRECT - Use OpenCV
+      cv::Mat kernel = cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(11, 11));
+      cv::dilate(I_mat, B_mat, kernel);
+  
+  imerode:
+    matlab: "imerode(I, SE)"
+    cpp_library: "opencv"
+    cpp_function: "cv::erode(src, dst, kernel)"
+  
+  find:
+    matlab: "indices = find(array)"
+    cpp_equivalent: "Manual loop"
+    explanation: "No built-in find() in C++ STL or Eigen"
+
+# ============================================================================
+# COMMON PATTERNS TO WATCH
+# ============================================================================
+
+common_patterns:
+  array_methods_on_matrix:
+    description: "Trying to use Array methods directly on Matrix"
+    examples:
+      - wrong: "matrix.sqrt()"
+        correct: "matrix.array().sqrt()"
+      - wrong: "matrix.abs()"
+        correct: "matrix.array().abs()"
+      - wrong: "matrix.pow(2)"
+        correct: "matrix.array().pow(2)"
+  
+  matrix_methods_on_array:
+    description: "Trying to use Matrix methods on Array"
+    examples:
+      - wrong: "array.transpose()"
+        correct: "array.matrix().transpose()"
+      - wrong: "array.inverse()"
+        correct: "array.matrix().inverse()"
+  
+  python_style_indexing:
+    description: "Using Python-style indexing in C++"
+    examples:
+      - wrong: "matrix[i, j]"
+        correct: "matrix(i, j)"
+      - wrong: "matrix[i][j]"
+        correct: "matrix(i, j)"
+      - wrong: "matrix[-1]"
+        correct: "matrix(matrix.size() - 1)"
+
+# ============================================================================
+# DETECTION PATTERNS (for automatic fixing)
+# ============================================================================
+
+detection_patterns:
+  eigen:
+    - pattern: "\\.hasNonZero\\(\\)"
+      replacement: "((#).array() != 0).any()"
+    - pattern: "\\.where\\("
+      replacement: ".select("
+    - pattern: "\\.hasInf\\(\\)"
+      replacement: "((#).array() == std::numeric_limits<double>::infinity()).any()"
+    - pattern: "\\.hasNaN\\(\\)"
+      replacement: "(#).array().isNaN().any()"
+    - pattern: "\\.nonzero\\(\\)"
+      message: "No .nonzero() in Eigen - use manual loop or boolean mask"
+    - pattern: "\\.find\\(\\)"
+      message: "No .find() in Eigen - use manual loop"
+    - pattern: "\\.flatten\\(\\)"
+      replacement: "Eigen::Map<Eigen::VectorXd>((#).data(), (#).size())"
+  
+  stdlib:
+    - pattern: "\\bmin\\("
+      check: "Missing std:: prefix or #include <algorithm>"
+      fix: "std::min("
+    - pattern: "\\bmax\\("
+      check: "Missing std:: prefix or #include <algorithm>"
+      fix: "std::max("
+
+
+
+
+
+

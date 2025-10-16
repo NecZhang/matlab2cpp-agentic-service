@@ -15,7 +15,7 @@ Two key sets control classification:
 """
 
 import re
-from typing import List, Dict, Set, Tuple, Optional
+from typing import List, Dict, Set, Tuple, Optional, Any
 
 class MATLABParser:
     """
@@ -118,6 +118,53 @@ class MATLABParser:
         
         return function_calls
 
+    def parse_function_signatures(self, code: str) -> Dict[str, Dict[str, Any]]:
+        """
+        Parse MATLAB function signatures, capturing inputs and outputs.
+
+        Returns:
+            Dict mapping function name -> {
+                "inputs": [list of argument names],
+                "outputs": [list of output names],
+                "has_varargin": bool,
+                "has_varargout": bool
+            }
+        """
+        signature_pattern = re.compile(
+            r'''function\s+
+                (?:
+                    (?P<outputs>\[[^\]]*\]|\w+)\s*=\s*
+                )?
+                (?P<name>\w+)\s*
+                \((?P<inputs>[^)]*)\)''',
+            re.IGNORECASE | re.VERBOSE
+        )
+        
+        signatures: Dict[str, Dict[str, Any]] = {}
+        
+        for match in signature_pattern.finditer(code):
+            name = match.group('name')
+            raw_outputs = match.group('outputs')
+            raw_inputs = match.group('inputs') or ''
+            
+            outputs: List[str] = []
+            if raw_outputs:
+                if raw_outputs.startswith('['):
+                    outputs = [out.strip() for out in raw_outputs.strip('[]').split(',') if out.strip()]
+                else:
+                    outputs = [raw_outputs.strip()]
+            
+            inputs = [arg.strip() for arg in raw_inputs.split(',') if arg.strip()]
+            
+            signatures[name] = {
+                'inputs': inputs,
+                'outputs': outputs,
+                'has_varargin': any(inp == 'varargin' for inp in inputs),
+                'has_varargout': any(out == 'varargout' for out in outputs)
+            }
+        
+        return signatures
+
     def parse_project(self, code: str) -> Dict[str, object]:
         """
         Summarise the MATLAB file.
@@ -128,14 +175,17 @@ class MATLABParser:
             'numerical_calls'-- sorted list of special numerical calls
             'function_calls' -- mapping of function name -> list of functions it calls
             'num_lines'      -- number of lines in the file
+            'function_signatures' -- mapping of function name -> signature metadata
         """
         funcs = self.parse_functions(code)
         deps, nums = self.parse_dependencies(code)
         func_calls = self.parse_function_calls(code)
+        signatures = self.parse_function_signatures(code)
         return {
             'functions': funcs,
             'dependencies': sorted(deps),
             'numerical_calls': sorted(nums),
             'function_calls': func_calls,
+            'function_signatures': signatures,
             'num_lines': len(code.splitlines())
         }

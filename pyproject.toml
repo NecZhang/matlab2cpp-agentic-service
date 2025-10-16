@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "matlab2cpp-agentic-service"
-version = "0.2.0"
+version = "0.3.0"
 description = "LangGraph-based agentic service for converting MATLAB projects to C++"
 authors = [
     {name = "Nec Zhang"},
@@ -28,6 +28,7 @@ dependencies = [
     "typing-extensions>=4.0.0",
     "python-dotenv>=1.1.1",
     "psutil",
+    "docker>=7.1.0",
 ]
 requires-python = ">=3.12"
 
@@ -56,3 +57,9 @@ python_version = "3.12"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true
+
+[tool.hatch.build]
+include = [
+    "src/matlab2cpp_agentic_service/infrastructure/templates/helpers/*.h",
+    "src/matlab2cpp_agentic_service/infrastructure/templates/helpers/*.cpp",
+]

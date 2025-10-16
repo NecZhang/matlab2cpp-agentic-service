@@ -147,6 +147,98 @@ def create_llm_client(config: LLMConfig) -> LLMClient:
         raise ValueError(f"Unsupported LLM provider: {config.provider}")
 
 
+def create_selective_llm_clients(base_config: LLMConfig, selective_config=None) -> Dict[str, LLMClient]:
+    """
+    Create selective LLM clients for different agents.
+    
+    Args:
+        base_config: Base LLM configuration (fallback)
+        selective_config: Selective LLM configuration from environment variables
+        
+    Returns:
+        Dictionary mapping agent names to their specific LLM clients
+    """
+    clients = {}
+    
+    # Use selective config if available, otherwise fall back to base config
+    if selective_config is None:
+        # Fallback to base config for both models
+        reasoning_config = LLMConfig(
+            provider=base_config.provider,
+            model=base_config.model,
+            api_key=base_config.api_key,
+            temperature=base_config.temperature,
+            max_tokens=base_config.max_tokens,
+            timeout=base_config.timeout,
+            vllm_endpoint=base_config.vllm_endpoint,
+            vllm_model_name=base_config.vllm_model_name,
+            openai_base_url=base_config.openai_base_url,
+            base_url=base_config.base_url
+        )
+        
+        cpp_config = LLMConfig(
+            provider=base_config.provider,
+            model="Qwen/Qwen3-Coder-30B-A3B-Instruct-FP8",
+            api_key=base_config.api_key,
+            temperature=0.1,
+            max_tokens=base_config.max_tokens,
+            timeout=base_config.timeout,
+            vllm_endpoint="http://192.168.6.19:8011/v1",
+            vllm_model_name="Qwen/Qwen3-Coder-30B-A3B-Instruct-FP8",
+            openai_base_url=base_config.openai_base_url,
+            base_url="http://192.168.6.19:8011/v1"
+        )
+    else:
+        # Use selective configuration from environment variables
+        reasoning_config = LLMConfig(
+            provider=selective_config.general_provider,
+            model=selective_config.general_model,
+            api_key=selective_config.general_api_key,
+            temperature=selective_config.general_temperature,
+            max_tokens=selective_config.general_max_tokens,
+            timeout=selective_config.general_timeout,
+            vllm_endpoint=selective_config.general_vllm_endpoint,
+            vllm_model_name=selective_config.general_vllm_model_name,
+            openai_base_url=base_config.openai_base_url,
+            base_url=selective_config.general_base_url
+        )
+        
+        cpp_config = LLMConfig(
+            provider=selective_config.coding_provider,
+            model=selective_config.coding_model,
+            api_key=selective_config.coding_api_key,
+            temperature=selective_config.coding_temperature,
+            max_tokens=selective_config.coding_max_tokens,
+            timeout=selective_config.coding_timeout,
+            vllm_endpoint=selective_config.coding_vllm_endpoint,
+            vllm_model_name=selective_config.coding_vllm_model_name,
+            openai_base_url=base_config.openai_base_url,
+            base_url=selective_config.coding_base_url
+        )
+    
+    # Create clients for different agent types
+    try:
+        # Reasoning model for most agents (analysis, planning, quality assessment, etc.)
+        logger.info(f"DEBUG: Creating reasoning client with config - model: {reasoning_config.model}, endpoint: {reasoning_config.vllm_endpoint}")
+        clients["reasoning"] = create_llm_client(reasoning_config)
+        logger.info("Created reasoning model client for analysis, planning, and assessment agents")
+        
+        # Direct model for C++ generation
+        logger.info(f"DEBUG: Creating coding client with config - model: {cpp_config.model}, endpoint: {cpp_config.vllm_endpoint}")
+        clients["cpp_generation"] = create_llm_client(cpp_config)
+        logger.info("Created direct model client for C++ generation agent")
+        
+    except Exception as e:
+        logger.error(f"Failed to create selective LLM clients: {e}")
+        # Fallback to single client
+        fallback_client = create_llm_client(base_config)
+        clients["reasoning"] = fallback_client
+        clients["cpp_generation"] = fallback_client
+        logger.warning("Using fallback single client for all agents")
+    
+    return clients
+
+
 def test_llm_connection(config: LLMConfig) -> bool:
     """Test LLM connection."""
     try:

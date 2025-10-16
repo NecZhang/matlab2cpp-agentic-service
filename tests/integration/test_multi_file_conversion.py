@@ -8,8 +8,9 @@ import sys
 import time
 from pathlib import Path
 
-# Add the src directory to the Python path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
+# Ensure proper module imports (use PYTHONPATH instead of sys.path manipulation)
+# If running directly, the parent directory should be in PYTHONPATH
+# Example: PYTHONPATH=/path/to/matlab2cpp_agentic_service/src pytest
 
 from matlab2cpp_agentic_service.utils.config import get_config, load_config
 from matlab2cpp_agentic_service.utils.logger import setup_logger, get_logger

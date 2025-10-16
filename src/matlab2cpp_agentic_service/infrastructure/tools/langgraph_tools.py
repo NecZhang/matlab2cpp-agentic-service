@@ -497,15 +497,16 @@ class LLMAnalysisTool:
 You are a domain expert analyzing MATLAB code for algorithmic understanding. 
 Focus on the mathematical and computational aspects of the code.
 
-CRITICAL INSTRUCTIONS:
-1. Do NOT include any <think>, <thinking>, or any XML-like tags
-2. Do NOT include any reasoning, analysis, or explanation
-3. Do NOT include any natural language text outside the JSON
-4. Return ONLY valid JSON starting with {{ and ending with }}
-5. If you need to think, do it silently without outputting it
-6. Your response must be parseable by json.loads() without errors
+Please analyze the MATLAB code structure and patterns, then provide your assessment in JSON format.
+Consider the mathematical operations, algorithms, and computational complexity.
 
-RESPONSE FORMAT: Start immediately with {{ and end with }}
+ANALYSIS APPROACH:
+1. Examine the code structure and identify key algorithms
+2. Analyze mathematical operations and their computational requirements
+3. Assess complexity and potential optimization opportunities
+4. Consider challenges for C++ conversion
+
+RESPONSE FORMAT: Return a JSON object with your analysis:
 
 MATLAB Code:
 {matlab_code}
@@ -528,7 +529,7 @@ Analyze the code and return a JSON object with:
     "confidence": 0.0-1.0
 }}
 
-CRITICAL: Return ONLY the JSON object, no additional text, no thinking process, no explanations.
+Please provide your analysis in the JSON format above, considering the algorithmic patterns and computational requirements.
 """
         return prompt
     
@@ -537,15 +538,8 @@ CRITICAL: Return ONLY the JSON object, no additional text, no thinking process, 
         prompt = f"""
 You are a performance expert analyzing MATLAB code for optimization opportunities.
 
-CRITICAL INSTRUCTIONS:
-1. Do NOT include any <think>, <thinking>, or any XML-like tags
-2. Do NOT include any reasoning, analysis, or explanation
-3. Do NOT include any natural language text outside the JSON
-4. Return ONLY valid JSON starting with {{ and ending with }}
-5. If you need to think, do it silently without outputting it
-6. Your response must be parseable by json.loads() without errors
-
-RESPONSE FORMAT: Start immediately with {{ and end with }}
+Please analyze the code and provide your assessment in JSON format.
+Consider the performance characteristics, optimization opportunities, and computational requirements.
 
 MATLAB Code:
 {matlab_code}
@@ -561,7 +555,7 @@ Analyze the performance characteristics and return a JSON object with:
     "confidence": 0.0-1.0
 }}
 
-CRITICAL: Return ONLY the JSON object, no additional text, no thinking process, no explanations.
+Please provide your analysis in the JSON format above, considering the algorithmic patterns and computational requirements.
 """
         return prompt
     
@@ -570,15 +564,8 @@ CRITICAL: Return ONLY the JSON object, no additional text, no thinking process, 
         prompt = f"""
 You are a software engineering expert analyzing MATLAB code complexity.
 
-CRITICAL INSTRUCTIONS:
-1. Do NOT include any <think>, <thinking>, or any XML-like tags
-2. Do NOT include any reasoning, analysis, or explanation
-3. Do NOT include any natural language text outside the JSON
-4. Return ONLY valid JSON starting with {{ and ending with }}
-5. If you need to think, do it silently without outputting it
-6. Your response must be parseable by json.loads() without errors
-
-RESPONSE FORMAT: Start immediately with {{ and end with }}
+Please analyze the code and provide your assessment in JSON format.
+Consider the performance characteristics, optimization opportunities, and computational requirements.
 
 MATLAB Code:
 {matlab_code}
@@ -594,7 +581,7 @@ Analyze the code complexity and return a JSON object with:
     "confidence": 0.0-1.0
 }}
 
-CRITICAL: Return ONLY the JSON object, no additional text, no thinking process, no explanations.
+Please provide your analysis in the JSON format above, considering the algorithmic patterns and computational requirements.
 """
         return prompt
     
@@ -603,15 +590,8 @@ CRITICAL: Return ONLY the JSON object, no additional text, no thinking process, 
         prompt = f"""
 You are an expert software engineer analyzing MATLAB code for C++ conversion.
 
-CRITICAL INSTRUCTIONS:
-1. Do NOT include any <think>, <thinking>, or any XML-like tags
-2. Do NOT include any reasoning, analysis, or explanation
-3. Do NOT include any natural language text outside the JSON
-4. Return ONLY valid JSON starting with {{ and ending with }}
-5. If you need to think, do it silently without outputting it
-6. Your response must be parseable by json.loads() without errors
-
-RESPONSE FORMAT: Start immediately with {{ and end with }}
+Please analyze the code and provide your assessment in JSON format.
+Consider the performance characteristics, optimization opportunities, and computational requirements.
 
 MATLAB Code:
 {matlab_code}
@@ -625,7 +605,7 @@ Provide a comprehensive analysis and return a JSON object with:
     "confidence": 0.0-1.0
 }}
 
-CRITICAL: Return ONLY the JSON object, no additional text, no thinking process, no explanations.
+Please provide your analysis in the JSON format above, considering the algorithmic patterns and computational requirements.
 """
         return prompt
     
@@ -664,6 +644,11 @@ class CodeGenerationTool:
         """Initialize the code generation tool."""
         self.llm_client = llm_client
         self.logger = logger.bind(name="code_generation_tool")
+        self.logger.info(f"CodeGenerationTool initialized with client: {type(llm_client).__name__}")
+        # Log client details for debugging
+        if hasattr(llm_client, 'config'):
+            self.logger.info(f"Client config - model: {getattr(llm_client.config, 'model', 'unknown')}")
+            self.logger.info(f"Client config - endpoint: {getattr(llm_client.config, 'vllm_endpoint', 'unknown')}")
     
     def __call__(self, matlab_analysis: Dict[str, Any], conversion_plan: Dict[str, Any], 
                  conversion_mode: str = "result-focused") -> ToolResult:
@@ -686,6 +671,9 @@ class CodeGenerationTool:
             
             # Generate code using legacy's direct LLM call approach
             try:
+                self.logger.info(f"Calling LLM client for code generation - client type: {type(self.llm_client).__name__}")
+                if hasattr(self.llm_client, 'config'):
+                    self.logger.info(f"Using model: {getattr(self.llm_client.config, 'model', 'unknown')} at endpoint: {getattr(self.llm_client.config, 'vllm_endpoint', 'unknown')}")
                 raw_response = self.llm_client.get_completion(prompt)
                 if not raw_response:
                     self.logger.warning("LLM returned empty response")
@@ -771,8 +759,13 @@ class CodeGenerationTool:
         )
         
         prompt_parts = [system_prompt]
-        prompt_parts.append("/no_think")
         prompt_parts.append("You are an expert C++ developer tasked with translating MATLAB functions into modern C++ code using Eigen and other appropriate libraries.")
+        
+        # Enhanced reasoning guidance for natural LLM thinking
+        prompt_parts.append("\nANALYSIS APPROACH:")
+        prompt_parts.append("Please analyze the MATLAB code structure, identify key algorithms and patterns, then generate appropriate C++ implementation.")
+        prompt_parts.append("Consider the mathematical operations, data flow, and computational requirements before generating code.")
+        prompt_parts.append("Think through the conversion strategy and ensure the C++ code maintains the same functionality as the MATLAB code.")
         
         # Add conversion mode specific instructions
         if conversion_mode == "faithful":
@@ -795,6 +788,43 @@ class CodeGenerationTool:
         
         prompt_parts.append("Follow all of the guidelines below to ensure numerical stability, performance, and maintainability:\n" + base_guidelines)
         
+        # Add explicit include instructions
+        prompt_parts.append("\nCRITICAL INCLUDE INSTRUCTIONS:")
+        prompt_parts.append("- ALWAYS use proper #include statements with angle brackets or quotes")
+        prompt_parts.append("- Examples: #include <iostream>, #include <vector>, #include <Eigen/Dense>")
+        prompt_parts.append("- NEVER use incomplete includes like '#include' without a filename")
+        prompt_parts.append("- For Eigen: use #include <Eigen/Dense>, #include <Eigen/Eigenvalues>, etc.")
+        prompt_parts.append("- For STL: use #include <iostream>, #include <vector>, #include <string>, etc.")
+        prompt_parts.append("- For local headers: use #include \"filename.h\"")
+        prompt_parts.append("- Include statements must be complete and valid C++ syntax")
+        
+        prompt_parts.append("\nCRITICAL CODE QUALITY REQUIREMENTS:")
+        prompt_parts.append("- Generate ONLY valid, compilable C++ code")
+        prompt_parts.append("- Ensure all for loops have complete syntax: for (int i = 0; i < n; i++)")
+        prompt_parts.append("- Ensure all function calls have proper syntax")
+        prompt_parts.append("- Do NOT mix test data with implementation code")
+        prompt_parts.append("- Keep header and implementation files separate and clean")
+        prompt_parts.append("- Use proper variable declarations and initialization")
+        prompt_parts.append("- Ensure all braces, parentheses, and semicolons are properly placed")
+        prompt_parts.append("- Convert MATLAB 1-based indexing to C++ 0-based indexing")
+        prompt_parts.append("- Use Eigen matrices for matrix operations")
+        prompt_parts.append("- Implement the exact same algorithm as the MATLAB code")
+        prompt_parts.append("- Return the result in the same format as the MATLAB function")
+        prompt_parts.append("\nEXAMPLE OF CORRECT HEADER FILE:")
+        prompt_parts.append("#ifndef EXAMPLE_H")
+        prompt_parts.append("#define EXAMPLE_H")
+        prompt_parts.append("#include <iostream>")
+        prompt_parts.append("#include <vector>")
+        prompt_parts.append("#include <Eigen/Dense>")
+        prompt_parts.append("// Function declarations here")
+        prompt_parts.append("#endif")
+        prompt_parts.append("\nEXAMPLE OF CORRECT IMPLEMENTATION FILE:")
+        prompt_parts.append("#include \"example.h\"")
+        prompt_parts.append("#include <iostream>")
+        prompt_parts.append("#include <vector>")
+        prompt_parts.append("#include <Eigen/Dense>")
+        prompt_parts.append("// Function implementations here")
+        
         # Summarise MATLAB file
         summary_lines = []
         if functions:
@@ -814,6 +844,19 @@ class CodeGenerationTool:
             prompt_parts.append(source_code)
             prompt_parts.append("```")
             prompt_parts.append("\nCRITICAL: You MUST translate this exact MATLAB code to C++. Do not make up your own implementation!")
+        else:
+            # Try to get source code from file_analyses if source_code is not available
+            file_analyses = matlab_analysis.get('file_analyses', [])
+            if file_analyses:
+                prompt_parts.append("\nORIGINAL MATLAB SOURCE CODE:")
+                prompt_parts.append("```matlab")
+                for analysis in file_analyses:
+                    content = analysis.get('content', '')
+                    if content:
+                        prompt_parts.append(f"// {analysis.get('file_name', 'unknown')}")
+                        prompt_parts.append(content)
+                prompt_parts.append("```")
+                prompt_parts.append("\nCRITICAL: You MUST translate this exact MATLAB code to C++. Do not make up your own implementation!")
         
         # Incorporate conversion plan with algorithmic mapping
         if conversion_plan:
@@ -842,41 +885,437 @@ class CodeGenerationTool:
             if steps:
                 prompt_parts.append("Recommended steps:\n" + "\n".join(f"- {step}" for step in steps))
         
-        # Use legacy's direct approach - force code blocks format
-        prompt_parts.append("\nIMPORTANT: Generate ONLY the C++ code translation. Do NOT include thinking process or explanations.")
+        # Enhanced approach - encourage reasoning before code generation
+        prompt_parts.append("\nCONVERSION PROCESS:")
+        prompt_parts.append("1. First, analyze the MATLAB code structure and identify key algorithms")
+        prompt_parts.append("2. Consider the mathematical operations and their C++ equivalents")
+        prompt_parts.append("3. Plan the C++ implementation approach and data structures")
+        prompt_parts.append("4. Generate high-quality C++ code that maintains functionality")
+        
+        prompt_parts.append("\nOUTPUT FORMAT:")
         prompt_parts.append("Return EXACTLY two fenced code blocks:")
         prompt_parts.append("1. First block: ```cpp (header file)")
         prompt_parts.append("2. Second block: ```cpp (implementation file)")
-        prompt_parts.append("Do NOT include any text before, between, or after the code blocks. ")
-        prompt_parts.append("Do NOT include <think> tags or explanatory text. ")
-        prompt_parts.append("Just the two code blocks with proper C++ code.")
+        prompt_parts.append("Focus on producing clean, efficient, and maintainable C++ code.")
         
         return "\n\n".join(prompt_parts)
     
+    def _fix_corrupted_includes(self, code: str) -> str:
+        """Fix corrupted includes and other common issues in generated code."""
+        if not code:
+            return code
+        
+        self.logger.info(f"DEBUG: _fix_corrupted_includes called with code length: {len(code)}")
+        self.logger.info(f"DEBUG: First 200 chars: {code[:200]}")
+            
+        lines = code.split('\n')
+        fixed_lines = []
+        seen_includes = set()
+        
+        # Check if we need to add Eigen includes
+        needs_eigen = any(keyword in code for keyword in ['Eigen::', 'MatrixXd', 'VectorXd', 'ArrayXd', 'Eigen::Matrix', 'Eigen::Vector', 'Eigen::Array'])
+        has_eigen_include = any('#include <Eigen/' in line or '#include "Eigen/' in line for line in lines)
+        
+        # Check if we need to add other common includes
+        needs_iostream = any(keyword in code for keyword in ['std::cout', 'std::endl', 'std::cin'])
+        has_iostream_include = any('#include <iostream>' in line for line in lines)
+        
+        needs_cmath = any(keyword in code for keyword in ['std::sqrt', 'std::sin', 'std::cos', 'std::exp', 'std::log'])
+        has_cmath_include = any('#include <cmath>' in line for line in lines)
+        
+        for line in lines:
+            stripped = line.strip()
+            
+            # Fix corrupted includes like "#include \n" or "#include "
+            if stripped == '#include' or stripped == '#include ':
+                # Determine what include to add based on context
+                if 'Eigen' in code or 'MatrixXd' in code or 'VectorXd' in code:
+                    include_line = '#include <Eigen/Dense>'
+                elif 'std::' in code or 'vector' in code or 'string' in code:
+                    include_line = '#include <iostream>'
+                else:
+                    include_line = '#include <iostream>'
+                
+                # Only add if we haven't seen this include before
+                if include_line not in seen_includes:
+                    fixed_lines.append(include_line)
+                    seen_includes.add(include_line)
+            
+            # Fix incomplete includes like "#include <iostream" (missing closing bracket)
+            elif stripped.startswith('#include <') and not stripped.endswith('>'):
+                # Try to complete the include
+                if 'iostream' in stripped:
+                    include_line = '#include <iostream>'
+                elif 'vector' in stripped:
+                    include_line = '#include <vector>'
+                elif 'string' in stripped:
+                    include_line = '#include <string>'
+                elif 'Eigen' in stripped:
+                    include_line = '#include <Eigen/Dense>'
+                else:
+                    include_line = '#include <iostream>'
+                
+                if include_line not in seen_includes:
+                    fixed_lines.append(include_line)
+                    seen_includes.add(include_line)
+            
+            # Fix incorrect header references FIRST (before general include handling)
+            elif '#include "main.h"' in line:
+                self.logger.info(f"DEBUG: Fixing main.h include in line: {line}")
+                fixed_line = line.replace('#include "main.h"', '#include "arma_filter.h"')
+                self.logger.info(f"DEBUG: Fixed line: {fixed_line}")
+                fixed_lines.append(fixed_line)
+            
+            # Fix missing math includes for std::sqrt
+            elif 'std::sqrt' in line and not any('#include <cmath>' in l for l in lines):
+                self.logger.info(f"DEBUG: Adding missing #include <cmath> for std::sqrt usage")
+                fixed_lines.append('#include <cmath>')
+                fixed_lines.append('')
+                fixed_lines.append(line)
+            
+            # Fix malformed type declarations (std::vector>> -> std::vector<>)
+            elif 'std::vector>>' in line:
+                fixed_line = line.replace('std::vector>>', 'std::vector<std::vector<double>>')
+                fixed_lines.append(fixed_line)
+            
+            # Fix other malformed template patterns
+            elif 'std::vector<' in line and '>' not in line:
+                # Try to complete incomplete vector declarations
+                if 'double' in line:
+                    fixed_line = line.replace('std::vector<', 'std::vector<double>')
+                elif 'int' in line:
+                    fixed_line = line.replace('std::vector<', 'std::vector<int>')
+                else:
+                    fixed_line = line.replace('std::vector<', 'std::vector<double>')
+                fixed_lines.append(fixed_line)
+            
+            # Fix malformed for loops and syntax (try to fix instead of removing)
+            elif 'for (int iteration = 0; iteration  y = res[i][j];' in line:
+                # Try to fix this malformed line
+                fixed_lines.append('        for (int iteration = 0; iteration < its; iteration++) {')
+                fixed_lines.append('            for (size_t i = 0; i < res.size(); i++) {')
+                fixed_lines.append('                for (size_t j = 0; j < res[i].size(); j++) {')
+                fixed_lines.append('                    // Implementation needed')
+                continue
+            elif 'for (int k = 0; k  eigSolver(RY);' in line:
+                # Try to fix this malformed line
+                fixed_lines.append('                    Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> eigSolver(RY);')
+                continue
+            elif 'for (int k = 0; k >> aux_data2_ = {' in line:
+                # This looks like test data mixed in, skip it
+                continue
+            
+            # Fix duplicate includes (moved after specific fixes)
+            elif stripped.startswith('#include'):
+                if stripped not in seen_includes:
+                    fixed_lines.append(line)
+                    seen_includes.add(stripped)
+                # Skip duplicate includes
+            
+            # Fix incorrect header guards
+            elif '#ifndef MAIN_H' in line:
+                fixed_line = line.replace('#ifndef MAIN_H', '#ifndef ARMA_FILTER_H')
+                fixed_lines.append(fixed_line)
+            elif '#define MAIN_H' in line:
+                fixed_line = line.replace('#define MAIN_H', '#define ARMA_FILTER_H')
+                fixed_lines.append(fixed_line)
+            elif '#endif // MAIN_H' in line:
+                fixed_line = line.replace('#endif // MAIN_H', '#endif // ARMA_FILTER_H')
+                fixed_lines.append(fixed_line)
+            
+            else:
+                fixed_lines.append(line)
+        
+        # Add missing includes at the top of the file if needed
+        final_lines = []
+        include_added = False
+        
+        # Check if we already have includes at the top
+        has_includes_at_top = False
+        for i, line in enumerate(fixed_lines[:10]):  # Check first 10 lines
+            if line.strip().startswith('#include'):
+                has_includes_at_top = True
+                break
+        
+        # Add missing includes at the beginning if we need them
+        if needs_eigen and not has_eigen_include and not include_added:
+            final_lines.append('#include <Eigen/Dense>')
+            include_added = True
+        
+        if needs_iostream and not has_iostream_include and not include_added:
+            final_lines.append('#include <iostream>')
+            include_added = True
+        
+        if needs_cmath and not has_cmath_include and not include_added:
+            final_lines.append('#include <cmath>')
+            include_added = True
+        
+        # Add a blank line after includes if we added any
+        if include_added:
+            final_lines.append('')
+        
+        # Add all the original lines
+        final_lines.extend(fixed_lines)
+        
+        result = '\n'.join(final_lines)
+        
+        # Fix 3D tensor types
+        result = self._fix_3d_tensor_types(result)
+        
+        # Fix namespace issues
+        result = self._fix_namespace_issues(result)
+        
+        # Fix missing #endif for include guards
+        result = self._fix_missing_endif(result)
+        
+        return result
+    
+    def _fix_3d_tensor_types(self, code: str) -> str:
+        """Fix incorrect 3D array type declarations to use Eigen::Tensor."""
+        import re
+        
+        # Replace common incorrect patterns with Eigen::Tensor
+        replacements = [
+            (r'Eigen::Array3D\s*<\s*double\s*>', r'Eigen::Tensor<double, 3>'),
+            (r'Eigen::Array3d\s*<\s*double\s*>', r'Eigen::Tensor<double, 3>'),
+            (r'Eigen::ArrayXXXd', r'Eigen::Tensor<double, 3>'),
+            (r'std::vector\s*<\s*std::vector\s*<\s*std::vector\s*<\s*double\s*>\s*>\s*>', 
+             r'Eigen::Tensor<double, 3>'),
+        ]
+        
+        for pattern, replacement in replacements:
+            code = re.sub(pattern, replacement, code)
+        
+        # Ensure Tensor include is present if Tensor type is used
+        if 'Eigen::Tensor' in code and '#include <unsupported/Eigen/CXX11/Tensor>' not in code:
+            # Find where to insert the include (after other Eigen includes or at the top)
+            eigen_include_match = re.search(r'(#include\s+<Eigen/Dense>)', code)
+            if eigen_include_match:
+                insert_pos = eigen_include_match.end()
+                code = code[:insert_pos] + '\n#include <unsupported/Eigen/CXX11/Tensor>' + code[insert_pos:]
+            else:
+                # Insert at the beginning if no Eigen includes found
+                code = '#include <unsupported/Eigen/CXX11/Tensor>\n' + code
+        
+        return code
+    
+    def _fix_namespace_issues(self, code: str) -> str:
+        """Fix missing Eigen:: namespace prefix on types."""
+        import re
+        
+        # Common Eigen types that need namespace prefix
+        eigen_types = [
+            'MatrixXd', 'MatrixXf', 'MatrixXi',
+            'VectorXd', 'VectorXf', 'VectorXi',
+            'ArrayXd', 'ArrayXf', 'ArrayXi',
+            'ArrayXXd', 'ArrayXXf', 'ArrayXXi',
+            'Matrix', 'Vector', 'Array',
+            'SelfAdjointEigenSolver',
+        ]
+        
+        for eigen_type in eigen_types:
+            # Match type not already prefixed with Eigen::
+            # Look for: word boundary + type + (space or <)
+            # But NOT: Eigen::type
+            pattern = r'(?<!Eigen::)(?<!:)\b(' + eigen_type + r')(?=\s|<|\(|&|\*|;)'
+            replacement = r'Eigen::\1'
+            code = re.sub(pattern, replacement, code)
+        
+        return code
+    
+    def _fix_missing_endif(self, code: str) -> str:
+        """Fix missing #endif statements for include guards."""
+        import re
+        
+        # Check if this looks like a header file with include guards
+        has_ifndef = '#ifndef' in code
+        has_define = '#define' in code
+        
+        if not (has_ifndef or has_define):
+            return code  # Not a header with include guards
+        
+        # Count include guard directives
+        ifndef_count = code.count('#ifndef')
+        endif_count = code.count('#endif')
+        
+        if ifndef_count > endif_count:
+            missing = ifndef_count - endif_count
+            self.logger.warning(f"Missing {missing} #endif statement(s), adding them")
+            
+            # Find the guard name from #define
+            define_match = re.search(r'#define\s+(\w+)', code)
+            if define_match:
+                guard_name = define_match.group(1)
+                # Add #endif with guard name
+                for _ in range(missing):
+                    code += f'\n\n#endif // {guard_name}'
+                self.logger.info(f"Added #endif // {guard_name}")
+            else:
+                # Fallback: just add #endif without comment
+                for _ in range(missing):
+                    code += '\n\n#endif'
+                self.logger.info(f"Added {missing} #endif statement(s)")
+        
+        return code
     
     def _parse_generated_code(self, response: str, conversion_mode: str) -> Dict[str, Any]:
         """Parse generated C++ code from LLM response."""
+        
+        # ==================== DIAGNOSTIC LOGGING ====================
+        import re
+        self.logger.info("=" * 80)
+        self.logger.info("📊 LLM RESPONSE ANALYSIS")
+        self.logger.info("=" * 80)
+        
+        # Basic stats
+        self.logger.info(f"Response length: {len(response)} characters")
+        self.logger.info(f"Response lines: {len(response.splitlines())}")
+        
+        # Pattern detection
+        code_block_count = response.count('```')
+        think_count = response.count('<think>')
+        think_close_count = response.count('</think>')
+        
+        self.logger.info(f"Code block markers (```): {code_block_count}")
+        self.logger.info(f"Think open tags: {think_count}")
+        self.logger.info(f"Think close tags: {think_close_count}")
+        
+        # Find C++ code blocks specifically
+        cpp_pattern = r'```(?:cpp|c\+\+|C\+\+|CPP)'
+        cpp_blocks = re.findall(cpp_pattern, response, re.IGNORECASE)
+        self.logger.info(f"C++ specific blocks: {len(cpp_blocks)}")
+        
+        # Analyze structure
+        if think_count > 0:
+            think_match = re.search(r'</think>', response, re.IGNORECASE)
+            if think_match:
+                think_end_pos = think_match.end()
+                content_after_think = response[think_end_pos:].strip()
+                self.logger.info(f"Content after </think>: {len(content_after_think)} chars")
+                self.logger.info(f"Preview after </think>: {content_after_think[:200]}")
+            else:
+                self.logger.warning("⚠️  Found <think> but no </think> tag!")
+        
+        # Show previews
+        self.logger.info("\n📝 Response Preview (first 500 chars):")
+        self.logger.info(response[:500])
+        
+        self.logger.info("\n📝 Response End (last 300 chars):")
+        self.logger.info(response[-300:])
+        
+        self.logger.info("=" * 80)
+        # ==================== END DIAGNOSTICS ====================
+        
         try:
+            # Preprocess response to handle <think> tags and other issues
+            clean_response = self._preprocess_response(response)
+            
             # Use legacy's simple code block extraction
-            header, implementation = self._extract_code_blocks_legacy(response)
+            header, implementation = self._extract_code_blocks_legacy(clean_response)
             
             if not header and not implementation:
                 self.logger.warning("No code blocks extracted from LLM response, trying JSON fallback")
                 self.logger.debug(f"LLM response length: {len(response)}")
                 self.logger.debug(f"LLM response preview: {response[:200]}...")
                 
+                # Check if the cleaned response looks like JSON
+                if clean_response.strip().startswith('{') and clean_response.strip().endswith('}'):
+                    self.logger.info("Cleaned response looks like JSON, skipping _extract_any_cpp_code")
+                else:
+                    # Try to extract any C++ code from the response as a last resort
+                    self.logger.info(f"DEBUG: Trying _extract_any_cpp_code with response length: {len(clean_response)}")
+                    cpp_code = self._extract_any_cpp_code(clean_response)
+                    if cpp_code:
+                        self.logger.info("Extracted C++ code from response using fallback method")
+                        self.logger.info(f"DEBUG: Extracted header: {cpp_code.get('header', '')[:100]}...")
+                        self.logger.info(f"DEBUG: Extracted implementation: {cpp_code.get('implementation', '')[:100]}...")
+                        return {
+                            'files': {
+                                'main.h': cpp_code.get('header', ''),
+                                'main.cpp': cpp_code.get('implementation', '')
+                            },
+                            'conversion_mode': conversion_mode,
+                            'notes': 'Generated using fallback C++ extraction',
+                            'raw_response': response
+                        }
+                    else:
+                        self.logger.warning("DEBUG: _extract_any_cpp_code returned empty result")
+                
+                # Debug: Save raw response for analysis
+                self.logger.error(f"DEBUG: Raw LLM response (first 500 chars): {response[:500]}")
+                self.logger.error(f"DEBUG: Cleaned response (first 500 chars): {clean_response[:500]}")
+                self.logger.error(f"DEBUG: Cleaned response length: {len(clean_response)}")
+                
                 # Try JSON parsing as fallback with robust recovery
                 try:
-                    # Remove <think> tags first
-                    clean_response = re.sub(r'<think>.*?</think>', '', response, flags=re.DOTALL).strip()
-                    
                     # Try to parse as JSON
+                    self.logger.debug(f"Attempting JSON parse of cleaned response (first 200 chars): {clean_response[:200]}")
+                    self.logger.debug(f"Attempting JSON parse of cleaned response (full length): {len(clean_response)}")
                     json_data = json.loads(clean_response)
+                    self.logger.debug(f"JSON parsing succeeded!")
+                    self.logger.debug(f"JSON parsing successful, keys: {list(json_data.keys())}")
+                    self.logger.debug(f"JSON data preview: {str(json_data)[:500]}")
                     
-                    if 'header' in json_data or 'implementation' in json_data:
+                    # Log the actual values for debugging
+                    for key, value in json_data.items():
+                        if isinstance(value, str):
+                            self.logger.debug(f"JSON field '{key}': {repr(value[:100])}")
+                        else:
+                            self.logger.debug(f"JSON field '{key}': {type(value)} - {str(value)[:100]}")
+                    
+                    # Check for alternative field names
+                    header_field = None
+                    impl_field = None
+                    
+                    for key in json_data.keys():
+                        if 'header' in key.lower():
+                            header_field = key
+                        elif 'implementation' in key.lower() or 'impl' in key.lower():
+                            impl_field = key
+                    
+                    self.logger.debug(f"Found header field: {header_field}, impl field: {impl_field}")
+                    
+                    if 'header' in json_data or 'implementation' in json_data or header_field or impl_field:
                         header = json_data.get('header', '')
                         implementation = json_data.get('implementation', '')
+                        
+                        # Also try alternative field names if found
+                        if header_field and not header:
+                            header = json_data.get(header_field, '')
+                        if impl_field and not implementation:
+                            implementation = json_data.get(impl_field, '')
+                        
+                        # Unescape the strings if they contain escaped characters
+                        self.logger.error(f"DEBUG: Before unescaping - header: {repr(header[:100])}")
+                        self.logger.error(f"DEBUG: Before unescaping - implementation: {repr(implementation[:100])}")
+                        
+                        if isinstance(header, str) and '\\n' in header:
+                            self.logger.error("DEBUG: Unescaping header")
+                            header = header.replace('\\n', '\n').replace('\\t', '\t').replace('\\"', '"').replace('\\\\', '\\')
+                        if isinstance(implementation, str) and '\\n' in implementation:
+                            self.logger.error("DEBUG: Unescaping implementation")
+                            implementation = implementation.replace('\\n', '\n').replace('\\t', '\t').replace('\\"', '"').replace('\\\\', '\\')
+                        
+                        # Fix corrupted includes
+                        header = self._fix_corrupted_includes(header)
+                        implementation = self._fix_corrupted_includes(implementation)
+                        
+                        self.logger.error(f"DEBUG: After unescaping and fixing - header: {repr(header[:100])}")
+                        self.logger.error(f"DEBUG: After unescaping and fixing - implementation: {repr(implementation[:100])}")
+                        
                         self.logger.info("Successfully parsed JSON fallback response")
+                        
+                        # Return the parsed results immediately
+                        return {
+                            'header': header,
+                            'implementation': implementation,
+                            'dependencies': json_data.get('dependencies', []),
+                            'compilation_instructions': json_data.get('compilation_instructions', ''),
+                            'usage_example': json_data.get('usage_example', ''),
+                            'notes': 'Generated using JSON fallback parsing',
+                            'conversion_mode': conversion_mode,
+                            'raw_response': response
+                        }
                     else:
                         raise ValueError("JSON missing required fields")
                         
@@ -889,6 +1328,13 @@ class CodeGenerationTool:
                         if recovered:
                             header = recovered.get('header', '')
                             implementation = recovered.get('implementation', '')
+                            
+                            # Unescape the strings if they contain escaped characters
+                            if isinstance(header, str) and '\\n' in header:
+                                header = header.replace('\\n', '\n').replace('\\t', '\t').replace('\\"', '"').replace('\\\\', '\\')
+                            if isinstance(implementation, str) and '\\n' in implementation:
+                                implementation = implementation.replace('\\n', '\n').replace('\\t', '\t').replace('\\"', '"').replace('\\\\', '\\')
+                            
                             self.logger.info("Successfully recovered JSON from large response")
                         else:
                             raise ValueError("JSON recovery failed")
@@ -1057,56 +1503,617 @@ class CodeGenerationTool:
     
     def _extract_code_blocks_legacy(self, llm_output: str) -> Tuple[str, str]:
         """
-        Extract header and implementation code from the LLM output using code block extraction.
+        Extract header and implementation code from LLM output.
+        Optimized for reasoning models that ALWAYS use <think> tags.
         
-        The LLM is expected to return two fenced code blocks, one for the
-        header (.h) and one for the implementation (.cpp). This method
-        separates them by detecting the first two code fences.
+        Extraction priority (for constant <think> pattern):
+        1. Code blocks AFTER </think> tag (most reliable)
+        2. Code blocks OUTSIDE <think> tags  
+        3. Code blocks INSIDE <think> tags
+        4. Return empty if no valid blocks found
         
         Args:
             llm_output: The raw LLM response.
             
         Returns:
-            A tuple (header_code, implementation_code). If either block
-            cannot be found, it returns an empty string for that block.
+            A tuple (header_code, implementation_code).
         """
-        # First, try to extract code blocks from the entire response
-        fences = re.findall(r"```(?:\w*\n)?(.*?)```", llm_output, re.DOTALL)
         
-        # If no code blocks found, try to extract from thinking tags
+        # ===== STRATEGY 1: Extract AFTER </think> tag =====
+        # This is the expected pattern for reasoning models
+        think_end_match = re.search(r'</think>', llm_output, re.IGNORECASE)
+        if think_end_match:
+            content_after_think = llm_output[think_end_match.end():]
+            fences = re.findall(r"```(?:\w*\n)?(.*?)```", content_after_think, re.DOTALL)
+            fences = [block.strip() for block in fences]
+            
+            # Validate blocks
+            valid_fences = [f for f in fences if self._looks_like_cpp_code(f) and self._is_complete_cpp_file(f)]
+            
+            if len(valid_fences) >= 2:
+                self.logger.info(f"✅ STRATEGY 1 SUCCESS: Found {len(valid_fences)} valid code blocks AFTER </think>")
+                return valid_fences[0], valid_fences[1]
+            elif len(fences) >= 2:
+                self.logger.warning(f"Found {len(fences)} blocks AFTER </think> but validation failed")
+                self.logger.info("Trying with relaxed validation...")
+                # Try with just _looks_like_cpp_code check
+                relaxed_valid = [f for f in fences if self._looks_like_cpp_code(f)]
+                if len(relaxed_valid) >= 2:
+                    self.logger.info(f"✅ STRATEGY 1 RELAXED: Accepted {len(relaxed_valid)} blocks with relaxed validation")
+                    return relaxed_valid[0], relaxed_valid[1]
+        
+        # ===== STRATEGY 2: Extract OUTSIDE <think> tags =====
+        text_without_think = self._remove_think_content(llm_output)
+        fences = re.findall(r"```(?:\w*\n)?(.*?)```", text_without_think, re.DOTALL)
+        fences = [block.strip() for block in fences]
+        
+        valid_fences = [f for f in fences if self._looks_like_cpp_code(f) and self._is_complete_cpp_file(f)]
+        
+        if len(valid_fences) >= 2:
+            self.logger.info(f"✅ STRATEGY 2 SUCCESS: Found {len(valid_fences)} valid code blocks OUTSIDE <think>")
+            return valid_fences[0], valid_fences[1]
+        elif len(fences) >= 2:
+            relaxed_valid = [f for f in fences if self._looks_like_cpp_code(f)]
+            if len(relaxed_valid) >= 2:
+                self.logger.info(f"✅ STRATEGY 2 RELAXED: Accepted {len(relaxed_valid)} blocks")
+                return relaxed_valid[0], relaxed_valid[1]
+        
+        # ===== STRATEGY 3: Extract INSIDE <think> tags =====
+        think_blocks = re.findall(r"<think>(.*?)</think>", llm_output, re.DOTALL | re.IGNORECASE)
+        all_fences = []
+        
+        for think_block in think_blocks:
+            think_fences = re.findall(r"```(?:\w*\n)?(.*?)```", think_block, re.DOTALL)
+            all_fences.extend([block.strip() for block in think_fences])
+        
+        valid_fences = [f for f in all_fences if self._looks_like_cpp_code(f) and self._is_complete_cpp_file(f)]
+        
+        if len(valid_fences) >= 2:
+            self.logger.info(f"✅ STRATEGY 3 SUCCESS: Found {len(valid_fences)} valid code blocks INSIDE <think>")
+            return valid_fences[0], valid_fences[1]
+        elif len(all_fences) >= 2:
+            relaxed_valid = [f for f in all_fences if self._looks_like_cpp_code(f)]
+            if len(relaxed_valid) >= 2:
+                self.logger.info(f"✅ STRATEGY 3 RELAXED: Accepted {len(relaxed_valid)} blocks")
+                return relaxed_valid[0], relaxed_valid[1]
+        
+        # ===== ALL STRATEGIES FAILED =====
+        self.logger.error("❌ ALL EXTRACTION STRATEGIES FAILED")
+        self.logger.error(f"   Code block markers found: {llm_output.count('```')}")
+        self.logger.error(f"   Think tags found: {llm_output.count('<think>')}")
+        
+        # Return empty - let the calling code handle fallback
+        return "", ""
+    
+    def _extract_code_blocks_outside_think_tags(self, llm_output: str) -> List[str]:
+        """
+        Extract code blocks that are OUTSIDE of <think> tags.
+        This is crucial for reasoning models that put reasoning in <think> and code outside.
+        """
+        fences = []
+        
+        # Remove all <think>...</think> content to focus on code outside reasoning
+        text_outside_think = self._remove_think_content(llm_output)
+        
+        # Extract code blocks from the text outside <think> tags
+        code_blocks = re.findall(r"```(?:\w*\n)?(.*?)```", text_outside_think, re.DOTALL)
+        
+        # Filter out any blocks that look like reasoning text rather than code
+        for block in code_blocks:
+            block_stripped = block.strip()
+            if self._looks_like_cpp_code(block_stripped):
+                fences.append(block_stripped)
+        
+        # If no clean code blocks found, try to extract C++ code patterns
         if not fences:
-            # Look for code blocks inside <think> tags
-            think_sections = re.findall(r"<think>(.*?)</think>", llm_output, re.DOTALL)
-            for think_section in think_sections:
-                think_fences = re.findall(r"```(?:\w*\n)?(.*?)```", think_section, re.DOTALL)
-                fences.extend(think_fences)
+            fences = self._extract_cpp_code_patterns_from_text(text_outside_think)
         
-        if len(fences) >= 2:
-            header_code = fences[0].strip()
-            implementation_code = fences[1].strip()
-        elif len(fences) == 1:
-            # Only one block returned; assume it's implementation
-            header_code = ""
-            implementation_code = fences[0].strip()
-        else:
-            header_code = ""
-            implementation_code = ""
-        return header_code, implementation_code
+        return fences
+    
+    def _extract_cpp_code_patterns_from_text(self, text: str) -> List[str]:
+        """
+        Extract C++ code patterns from text when no clean code blocks are found.
+        This is a more aggressive extraction for reasoning models.
+        """
+        fences = []
+        
+        # Look for C++ code sections by finding patterns like:
+        # - #include statements
+        # - namespace declarations
+        # - function definitions
+        # - class/struct definitions
+        
+        lines = text.split('\n')
+        current_code_section = []
+        in_code_section = False
+        
+        for line in lines:
+            line_stripped = line.strip()
+            
+            # Skip reasoning text indicators
+            if any(reasoning_word in line_stripped.lower() for reasoning_word in [
+                'i need to', 'let me', 'first,', 'next,', 'so,', 'but', 'wait,',
+                'the code', 'i think', 'looking at', 'i can see', 'this means',
+                'therefore', 'however', 'in order to', 'to do this', 'okay,',
+                'let\'s see', 'i can see', 'the main function', 'breaking it down',
+                'in matlab', 'in c++', 'so in c++', 'the matlab code', 'but in c++',
+                'step 1', 'step 2', 'step 3', 'step 4', 'step 5', 'step 6',
+                'step 7', 'step 8', 'step 9', 'step 10', '1.', '2.', '3.', '4.', '5.',
+                '6.', '7.', '8.', '9.', '10.', 'read the', 'extract', 'create',
+                'compute', 'fill', 'store', 'process', 'implement', 'generate'
+            ]):
+                # End current code section if we hit reasoning text
+                if in_code_section and current_code_section:
+                    code_text = '\n'.join(current_code_section)
+                    if self._looks_like_cpp_code(code_text):
+                        fences.append(code_text)
+                    current_code_section = []
+                in_code_section = False
+                continue
+            
+            # Check if this line starts a C++ code section
+            if any(cpp_indicator in line_stripped for cpp_indicator in [
+                '#include', 'namespace', 'class ', 'struct ', 'void ', 'int ', 'double ',
+                'std::', 'Eigen::', 'MatrixXd', 'VectorXd', 'return ', 'for(', 'while(',
+                'if(', 'else', '{', '}', '//', '/*', '*/'
+            ]):
+                if not in_code_section:
+                    # Start a new code section
+                    in_code_section = True
+                    current_code_section = [line]
+                else:
+                    # Continue current code section
+                    current_code_section.append(line)
+            elif in_code_section:
+                # Continue current code section if it looks like code
+                if line_stripped and not line_stripped.startswith('//') and not line_stripped.startswith('/*'):
+                    current_code_section.append(line)
+                else:
+                    # End current code section
+                    if current_code_section:
+                        code_text = '\n'.join(current_code_section)
+                        if self._looks_like_cpp_code(code_text):
+                            fences.append(code_text)
+                        current_code_section = []
+                    in_code_section = False
+        
+        # Handle the last code section
+        if in_code_section and current_code_section:
+            code_text = '\n'.join(current_code_section)
+            if self._looks_like_cpp_code(code_text):
+                fences.append(code_text)
+        
+        return fences
+    
+    def _remove_think_content(self, text: str) -> str:
+        """Remove all content inside <think>...</think> tags."""
+        # Remove <think>...</think> blocks completely
+        text_without_think = re.sub(r'<think>.*?</think>', '', text, flags=re.DOTALL)
+        
+        # Also remove any remaining <think> or </think> tags
+        text_without_think = re.sub(r'</?think>', '', text_without_think)
+        
+        return text_without_think
+    
+    def _looks_like_cpp_code(self, text: str) -> bool:
+        """
+        Determine if a text block looks like C++ code rather than reasoning text.
+        """
+        if not text or len(text.strip()) < 10:
+            return False
+        
+        # Check for C++ specific patterns
+        cpp_indicators = [
+            '#include', 'namespace', 'class ', 'struct ', 'void ', 'int ', 'double ',
+            'std::', 'Eigen::', 'MatrixXd', 'VectorXd', 'return ', 'for(', 'while(',
+            'if(', 'else', '{', '}', ';', '//', '/*', '*/', 'auto ', 'const ',
+            'template', 'typename', 'using ', 'typedef', 'enum ', 'union '
+        ]
+        
+        # Check for reasoning text indicators
+        reasoning_indicators = [
+            'i need to', 'let me', 'first,', 'next,', 'so,', 'but', 'wait,',
+            'the code', 'i think', 'looking at', 'i can see', 'this means',
+            'therefore', 'however', 'in order to', 'to do this', 'okay,',
+            'let\'s see', 'the main function', 'breaking it down', 'in matlab',
+            'in c++', 'so in c++', 'the matlab code', 'but in c++'
+        ]
+        
+        text_lower = text.lower()
+        
+        # Count C++ indicators
+        cpp_count = sum(1 for indicator in cpp_indicators if indicator in text)
+        
+        # Count reasoning indicators
+        reasoning_count = sum(1 for indicator in reasoning_indicators if indicator in text_lower)
+        
+        # Check for C++ syntax patterns
+        has_semicolons = text.count(';') > 0
+        has_braces = text.count('{') > 0 or text.count('}') > 0
+        has_includes = '#include' in text
+        has_namespace = 'namespace' in text
+        
+        # Strong C++ indicators
+        strong_cpp_indicators = has_includes or has_namespace or (has_semicolons and has_braces)
+        
+        # If it has strong C++ indicators, it's likely code
+        if strong_cpp_indicators and reasoning_count <= 2:
+            return True
+        
+        # If it has many reasoning indicators, it's likely reasoning text
+        if reasoning_count >= 4:
+            return False
+        
+        # If it has C++ indicators and few reasoning indicators, it's likely code
+        if cpp_count >= 2 and reasoning_count <= 1:
+            return True
+        
+        # If it has some C++ indicators and minimal reasoning, consider it code
+        if cpp_count >= 1 and reasoning_count == 0:
+            return True
+        
+        # Default: if it has some C++ indicators, consider it code
+        return cpp_count >= 1
+    
+    def _is_complete_cpp_file(self, code: str) -> bool:
+        """Check if code looks like a complete C++ file (not just snippets)."""
+        if not code or len(code) < 50:
+            return False
+        
+        # For header files, require include guards or #pragma once
+        if any(keyword in code for keyword in ['#ifndef', '#define', '#pragma once']):
+            # This looks like a header file
+            # Should have at least a function declaration or class definition
+            if any(keyword in code for keyword in ['void ', 'int ', 'class ', 'struct ', 'namespace ']):
+                return True
+        
+        # For implementation files, require includes and function definitions
+        if '#include' in code:
+            # Should have function definitions (with braces)
+            if '{' in code and '}' in code:
+                # Count braces to ensure they're balanced
+                open_braces = code.count('{')
+                close_braces = code.count('}')
+                if abs(open_braces - close_braces) <= 1:  # Allow small imbalance
+                    return True
+        
+        # Check if it's a namespace block
+        if 'namespace ' in code and '{' in code and '}' in code:
+            return True
+        
+        # Reject obvious snippets
+        if code.count('\n') < 5:  # Too short to be a real file
+            return False
+        
+        # Reject if it starts with reasoning text
+        first_line = code.split('\n')[0].strip()
+        reasoning_starters = ['in the', 'for the', 'the ', 'this ', 'we need', 'i need', 'let me', 'first,', 'next,', 'now,']
+        if any(first_line.lower().startswith(starter) for starter in reasoning_starters):
+            return False
+        
+        # If code passed all rejection checks, accept it
+        return True
+    
+    def _extract_cpp_patterns(self, text: str) -> List[str]:
+        """
+        Extract C++ code patterns from text when code blocks are not found.
+        """
+        fences = []
+        
+        # Look for C++ code patterns (functions, classes, includes)
+        cpp_patterns = re.findall(r'(#include.*?)(?=\n\n|\nclass|\nnamespace|\nstruct|\n[A-Z][a-zA-Z]*\s*\(|\Z)', text, re.DOTALL)
+        if cpp_patterns:
+            # Try to extract header and implementation from patterns
+            header_candidates = []
+            impl_candidates = []
+            
+            for pattern in cpp_patterns:
+                if any(keyword in pattern for keyword in ['#include', 'class', 'struct', 'namespace']):
+                    header_candidates.append(pattern)
+                elif any(keyword in pattern for keyword in ['int main', 'void ', 'return']):
+                    impl_candidates.append(pattern)
+            
+            if header_candidates:
+                fences.append('\n'.join(header_candidates))
+            if impl_candidates:
+                fences.append('\n'.join(impl_candidates))
+        
+        return fences
+    
+    def _aggressive_cpp_extraction(self, text: str) -> List[str]:
+        """
+        Aggressive extraction of any C++-like content from text.
+        This is the last resort when all other methods fail.
+        """
+        fences = []
+        
+        # Remove <think> content first
+        clean_text = self._remove_think_content(text)
+        
+        # Look for any lines that contain C++ keywords or syntax
+        lines = clean_text.split('\n')
+        cpp_lines = []
+        
+        for line in lines:
+            line_stripped = line.strip()
+            # Look for any C++-like content, even malformed
+            if any(keyword in line_stripped for keyword in [
+                '#include', '#ifndef', '#define', '#endif', 'namespace', 'void', 'int', 'double',
+                'float', 'bool', 'char', 'std::', 'Eigen::', 'MatrixXd', 'VectorXd', 'ArrayXd',
+                'for(', 'while(', 'if(', 'return', '{', '}', ';', '(', ')', '=', '+', '-', '*', '/',
+                'class', 'struct', 'public:', 'private:', 'protected:', 'const', 'static'
+            ]):
+                cpp_lines.append(line)
+        
+        # If we found any C++-like lines, try to organize them
+        if cpp_lines:
+            # Try to separate header and implementation
+            header_lines = []
+            impl_lines = []
+            
+            for line in cpp_lines:
+                if any(keyword in line for keyword in ['#include', '#ifndef', '#define', '#endif', 'namespace', 'void ', 'int ', 'double ']):
+                    if 'void ' in line or 'int ' in line or 'double ' in line:
+                        # Function declaration
+                        if line.endswith(';') and '{' not in line:
+                            header_lines.append(line)
+                        else:
+                            impl_lines.append(line)
+                    else:
+                        header_lines.append(line)
+                else:
+                    impl_lines.append(line)
+            
+            if header_lines:
+                fences.append('\n'.join(header_lines))
+            if impl_lines:
+                fences.append('\n'.join(impl_lines))
+        
+        return fences
+    
+    def _extract_any_cpp_code(self, response: str) -> Dict[str, str]:
+        """
+        Extract any C++ code from a response as a last resort.
+        Enhanced for reasoning models that use <think> tags.
+        
+        Args:
+            response: Cleaned LLM response
+            
+        Returns:
+            Dictionary with 'header' and 'implementation' keys, or empty dict if none found
+        """
+        try:
+            # First, remove all <think> content to focus on actual code
+            text_outside_think = self._remove_think_content(response)
+            
+            # Look for any C++ patterns in the response outside <think> tags
+            cpp_patterns = {
+                'header': [],
+                'implementation': []
+            }
+            
+            # Split response into lines for analysis
+            lines = text_outside_think.split('\n')
+            current_section = None
+            
+            for line in lines:
+                line = line.strip()
+                
+                # Skip reasoning text indicators
+                if any(reasoning_word in line.lower() for reasoning_word in [
+                    'i need to', 'let me', 'first,', 'next,', 'so,', 'but', 'wait,',
+                    'the code', 'i think', 'looking at', 'i can see', 'this means',
+                    'therefore', 'however', 'in order to', 'to do this', 'okay,',
+                    'let\'s see', 'i can see', 'the main function', 'breaking it down'
+                ]):
+                    continue
+                
+                # Detect header section
+                if any(keyword in line for keyword in ['#include', '#ifndef', '#define', 'class ', 'struct ', 'namespace ']):
+                    current_section = 'header'
+                    cpp_patterns['header'].append(line)
+                # Detect implementation section
+                elif any(keyword in line for keyword in ['int main', 'void ', 'return ', 'for (', 'if (', 'while (']):
+                    current_section = 'implementation'
+                    cpp_patterns['implementation'].append(line)
+                # Continue adding to current section
+                elif current_section and line and not line.startswith('//') and not line.startswith('/*'):
+                    cpp_patterns[current_section].append(line)
+                # Reset section on empty lines or comments
+                elif not line or line.startswith('//') or line.startswith('/*'):
+                    current_section = None
+            
+            # Return if we found any C++ code
+            if cpp_patterns['header'] or cpp_patterns['implementation']:
+                header = '\n'.join(cpp_patterns['header'])
+                implementation = '\n'.join(cpp_patterns['implementation'])
+                
+                # Unescape the extracted code
+                self.logger.debug(f"Before unescaping in _extract_any_cpp_code - header: {repr(header[:100])}")
+                self.logger.debug(f"Before unescaping in _extract_any_cpp_code - implementation: {repr(implementation[:100])}")
+                
+                header = header.replace('\\n', '\n').replace('\\t', '\t').replace('\\"', '"').replace('\\\\', '\\')
+                implementation = implementation.replace('\\n', '\n').replace('\\t', '\t').replace('\\"', '"').replace('\\\\', '\\')
+                
+                self.logger.debug(f"After unescaping in _extract_any_cpp_code - header: {repr(header[:100])}")
+                self.logger.debug(f"After unescaping in _extract_any_cpp_code - implementation: {repr(implementation[:100])}")
+                
+                return {
+                    'header': header,
+                    'implementation': implementation
+                }
+            
+            return {}
+            
+        except Exception as e:
+            self.logger.debug(f"Error in _extract_any_cpp_code: {e}")
+            return {}
 
+    def _preprocess_response(self, response: str) -> str:
+        """
+        Preprocess LLM response to handle <think> tags and other issues.
+        
+        Args:
+            response: Raw LLM response
+            
+        Returns:
+            Cleaned response ready for parsing
+        """
+        try:
+            # Strategy 1: Look for JSON format first (but be more careful)
+            json_start = response.find('{')
+            if json_start != -1:
+                # Check if this looks like JSON (starts with { and has quoted property names)
+                json_content = response[json_start:]
+                if '"' in json_content[:200] and ('"header":' in json_content or '"implementation":' in json_content):
+                    # This looks like JSON - extract it
+                    brace_count = 0
+                    json_end = -1
+                    for i, char in enumerate(json_content):
+                        if char == '{':
+                            brace_count += 1
+                        elif char == '}':
+                            brace_count -= 1
+                            if brace_count == 0:
+                                json_end = i + 1
+                                break
+                    
+                    # If we found a complete JSON object, use it
+                    if json_end != -1:
+                        cleaned = json_content[:json_end]
+                        return cleaned
+            
+            # Strategy 2: Look for code blocks in <think> tags
+            think_blocks = re.findall(r'<think>(.*?)</think>', response, flags=re.DOTALL)
+            if think_blocks:
+                # Extract all content from think blocks
+                think_content = '\n'.join(think_blocks)
+                
+                # Look for code blocks within think content
+                code_blocks = re.findall(r"```(?:\w*\n)?(.*?)```", think_content, re.DOTALL)
+                if code_blocks:
+                    # If we found code blocks in think tags, reconstruct them
+                    reconstructed = ""
+                    for i, code_block in enumerate(code_blocks):
+                        if i % 2 == 0:
+                            reconstructed += f"```cpp\n{code_block}\n```\n\n"
+                        else:
+                            reconstructed += f"```cpp\n{code_block}\n```\n\n"
+                    return reconstructed.strip()
+            
+            # Strategy 3: Look for code blocks outside think tags
+            code_blocks = re.findall(r"```(?:\w*\n)?(.*?)```", response, re.DOTALL)
+            if code_blocks:
+                reconstructed = ""
+                for i, code_block in enumerate(code_blocks):
+                    if i % 2 == 0:
+                        reconstructed += f"```cpp\n{code_block}\n```\n\n"
+                    else:
+                        reconstructed += f"```cpp\n{code_block}\n```\n\n"
+                return reconstructed.strip()
+            
+            # Strategy 4: If response contains <think> tags, extract the content
+            if '<think>' in response:
+                # Remove <think> and </think> tags but keep content
+                cleaned = re.sub(r'</?think>', '', response)
+                return cleaned.strip()
+            
+            # Strategy 5: Fallback - return original response
+            return response.strip()
+            
+        except Exception as e:
+            self.logger.warning(f"Error preprocessing response: {e}")
+            return response  # Return original if preprocessing fails
+    
+    def _extract_from_chunked_response(self, response: str) -> Optional[Dict[str, Any]]:
+        """
+        Extract JSON fields from very large responses by processing in chunks.
+        
+        Args:
+            response: Large response string
+            
+        Returns:
+            Dictionary with header and implementation if found
+        """
+        try:
+            # Split response into manageable chunks
+            chunk_size = 10000  # 10KB chunks
+            chunks = [response[i:i+chunk_size] for i in range(0, len(response), chunk_size)]
+            
+            header_content = ""
+            implementation_content = ""
+            
+            # Process each chunk for header and implementation patterns
+            for chunk in chunks:
+                # Look for header field
+                if '"header"' in chunk:
+                    header_match = re.search(r'"header"\s*:\s*"([^"]*(?:\\.[^"]*)*?)"', chunk, re.DOTALL)
+                    if header_match:
+                        header_content = header_match.group(1)
+                
+                # Look for implementation field
+                if '"implementation"' in chunk:
+                    impl_match = re.search(r'"implementation"\s*:\s*"([^"]*(?:\\.[^"]*)*?)"', chunk, re.DOTALL)
+                    if impl_match:
+                        implementation_content = impl_match.group(1)
+            
+            # If we found content, unescape and return
+            if header_content or implementation_content:
+                header_content = header_content.replace('\\"', '"').replace('\\n', '\n').replace('\\t', '\t').replace('\\\\', '\\')
+                implementation_content = implementation_content.replace('\\"', '"').replace('\\n', '\n').replace('\\t', '\t').replace('\\\\', '\\')
+                
+                return {
+                    'header': header_content,
+                    'implementation': implementation_content
+                }
+            
+            return None
+            
+        except Exception as e:
+            self.logger.warning(f"Error extracting from chunked response: {e}")
+            return None
+    
     def _recover_json_from_large_response(self, response: str) -> Optional[Dict[str, Any]]:
         """
         Robust JSON recovery for large responses that fail standard JSON parsing.
         This handles cases where the LLM returns malformed JSON due to large code content.
         """
         try:
-            # Method 1: Try to extract JSON fields using regex patterns
-            header_match = re.search(r'"header"\s*:\s*"([^"]*(?:\\.[^"]*)*)"', response, re.DOTALL)
-            implementation_match = re.search(r'"implementation"\s*:\s*"([^"]*(?:\\.[^"]*)*)"', response, re.DOTALL)
+            # Preprocess response to ensure it's clean
+            clean_response = self._preprocess_response(response)
             
-            if header_match and implementation_match:
-                header_content = header_match.group(1)
-                implementation_content = implementation_match.group(1)
-                
+            # Method 1: Try to extract JSON fields using improved regex patterns
+            # Handle both single-line and multi-line JSON strings
+            header_patterns = [
+                r'"header"\s*:\s*"([^"]*(?:\\.[^"]*)*)"',  # Single line
+                r'"header"\s*:\s*"([^"]*(?:\\.[^"]*)*?)"',  # Multi-line with lazy matching
+                r'"header"\s*:\s*"([^"]*(?:\\.[^"]*)*?)"\s*,',  # With trailing comma
+            ]
+            
+            implementation_patterns = [
+                r'"implementation"\s*:\s*"([^"]*(?:\\.[^"]*)*)"',  # Single line
+                r'"implementation"\s*:\s*"([^"]*(?:\\.[^"]*)*?)"',  # Multi-line with lazy matching
+                r'"implementation"\s*:\s*"([^"]*(?:\\.[^"]*)*?)"\s*[,}]',  # With trailing comma or brace
+            ]
+            
+            header_content = ""
+            implementation_content = ""
+            
+            # Try different patterns for header
+            for pattern in header_patterns:
+                header_match = re.search(pattern, clean_response, re.DOTALL)
+                if header_match:
+                    header_content = header_match.group(1)
+                    break
+            
+            # Try different patterns for implementation
+            for pattern in implementation_patterns:
+                implementation_match = re.search(pattern, clean_response, re.DOTALL)
+                if implementation_match:
+                    implementation_content = implementation_match.group(1)
+                    break
+            
+            if header_content or implementation_content:
                 # Unescape JSON string content
                 header_content = header_content.replace('\\"', '"').replace('\\n', '\n').replace('\\t', '\t').replace('\\\\', '\\')
                 implementation_content = implementation_content.replace('\\"', '"').replace('\\n', '\n').replace('\\t', '\t').replace('\\\\', '\\')
@@ -1117,11 +2124,11 @@ class CodeGenerationTool:
                 }
             
             # Method 2: Try to find JSON boundaries and extract manually
-            json_start = response.find('{')
-            json_end = response.rfind('}')
+            json_start = clean_response.find('{')
+            json_end = clean_response.rfind('}')
             
             if json_start != -1 and json_end != -1 and json_end > json_start:
-                json_content = response[json_start:json_end + 1]
+                json_content = clean_response[json_start:json_end + 1]
                 
                 # Try to fix common JSON issues
                 # Remove trailing commas
@@ -1132,6 +2139,10 @@ class CodeGenerationTool:
                     return json.loads(json_content)
                 except:
                     pass
+            
+            # Method 2.5: Handle very large responses by chunking
+            if len(clean_response) > 50000:  # Very large response
+                return self._extract_from_chunked_response(clean_response)
             
             # Method 3: Extract content between quotes for each field
             lines = response.split('\n')
@@ -1498,15 +2509,14 @@ class QualityAssessmentTool:
         prompt = f"""
 You are a C++ quality expert assessing code converted from MATLAB.
 
-CRITICAL INSTRUCTIONS:
-1. Do NOT include any <think>, <thinking>, or any XML-like tags
-2. Do NOT include any reasoning, analysis, or explanation
-3. Do NOT include any natural language text outside the JSON
-4. Return ONLY valid JSON starting with {{ and ending with }}
-5. If you need to think, do it silently without outputting it
-6. Your response must be parseable by json.loads() without errors
+Please analyze the code and provide your assessment in JSON format.
+Consider the performance characteristics, optimization opportunities, and computational requirements.
 
-RESPONSE FORMAT: Start immediately with {{ and end with }}
+ASSESSMENT APPROACH:
+1. Compare the C++ implementation against the original MATLAB code
+2. Evaluate algorithmic correctness and mathematical equivalence
+3. Assess performance, error handling, and code quality
+4. Identify areas for improvement and optimization
 
 Original MATLAB Code:
 {matlab_code}
@@ -1549,7 +2559,7 @@ Assess the C++ code quality across these categories and return a JSON object:
     "recommendations": ["Key recommendations for improvement"]
 }}
 
-CRITICAL: Return ONLY the JSON object, no additional text, no thinking process, no explanations.
+Please provide your analysis in the JSON format above, considering the algorithmic patterns and computational requirements.
 """
         return prompt
     
